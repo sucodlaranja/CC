@@ -1,9 +1,10 @@
 import java.net.*;
 import java.util.Scanner;
 import java.io.*;
+
 public class Cliente {
     private Socket socket;
-    private DataInputStream in;
+    private BufferedReader in;
     private DataOutputStream out;
 
     public Cliente(String address, int port) {
@@ -11,7 +12,7 @@ public class Cliente {
         socket = new Socket(address, port);
         System.out.println("Connected");
 
-        in = new DataInputStream(System.in);
+        in = new BufferedReader(new InputStreamReader(System.in));
         out = new DataOutputStream(socket.getOutputStream());
         }
         catch(IOException e) {
@@ -38,6 +39,7 @@ public class Cliente {
             e.printStackTrace();
         }
     }
+
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         System.out.print("Coloque o ip: ");
