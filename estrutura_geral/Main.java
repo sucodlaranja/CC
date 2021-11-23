@@ -6,17 +6,10 @@ public class Main {
     public static void main(String[] args) {
         // Parsing user input: "FFSync filepath ip"
         String filepath = "";
-        InetAddress ip = null;
+        String ip = "";
         if(args.length > 2){
             filepath = args[1];
-            String ip_str = args[2];
-            try{
-                ip = InetAddress.getByName(ip_str);
-            }
-            catch (UnknownHostException e){
-                System.out.println("Invalid ip.");
-                e.printStackTrace();
-            }
+            ip = args[2];
         }
 
         // Create Interpreter thread.
@@ -39,7 +32,7 @@ public class Main {
         }
 
         // TODO: HOW??
-        // Close Listener
+        // Close Listener - can we do it here?
 
 
         System.out.println("Bye");
