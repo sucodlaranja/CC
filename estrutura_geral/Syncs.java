@@ -39,7 +39,7 @@ public class Syncs {
      * Terminate one specific or all syncs.
      * */
     public void terminate(String id) {
-        // TODO: HOW THE HELL DO I TERMINATE A SYNC !?!? Is it enough to close socket?
+        // TODO: Is it enough to close socket?
 
         if (!id.equals("all")){
             Integer key = Integer.parseInt(id);
@@ -54,9 +54,8 @@ public class Syncs {
         }
         else{
             System.out.println("Terminating all syncs.");
-
-
-            this.syncs.clear(); // TODO: or maybe remove one by one...
+            this.syncs.values().forEach(SyncHandler::closeSocket);
+            this.syncs.clear();
         }
 
 

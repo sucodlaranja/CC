@@ -1,8 +1,5 @@
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,6 +46,13 @@ public class SyncHandler implements Runnable{
     private DatagramPacket getRandomNumberPacket(){
         // Get INIT header
         byte[] header = this.ftRapidHeader(INIT);
+
+        // TODO: need more info -> name of file
+        String filename = this.syncInfo.getFilename();
+        System.out.println(filename);
+
+        //byte[] filename;
+
         // Generate random integer byte array.
         byte[] rInt = ByteBuffer.allocate(4).putInt(new Random().nextInt()).array();
 
@@ -70,25 +74,37 @@ public class SyncHandler implements Runnable{
             this.syncSocket = new DatagramSocket();
             this.syncSocket.setSoTimeout(1000);
 
-            // Create packet with random number - destination=listener_port
+            // Create packet with random number => destination=listener_port
             DatagramPacket randomNumberPacket = this.getRandomNumberPacket();
 
-            // Keep sending random number
-            while(!this.syncSocket.isClosed()){
-                this.syncSocket.send(randomNumberPacket);
-            }
+            // Initiate sync.
+            int numberOfTimeouts = 0;
+            while(!this.syncSocket.isClosed() && numberOfTimeouts < 5) {
+                try {
+                    // Send random number to other peer.
+                    this.syncSocket.send(randomNumberPacket);
 
-            // Close socket
-            //this.closeSocket();
+                    // TODO: Check if listener received random number from this ip with the same name of folder.
+
+                }
+                catch (SocketTimeoutException e){
+                    // TIMEOUT: no problem...it will probably happen a few times in each start of sync.
+                    numberOfTimeouts++;
+                    System.out.println("timeout");
+                }
+                catch (IOException e){
+                    e.printStackTrace();
+                }
+            }
         }
         catch (SocketException e) {
             System.out.println("Failed to create socket in sync " + this.syncInfo.getId() + ".");
             e.printStackTrace();
         }
-        catch (IOException e){
-            e.printStackTrace();
-        }
         finally {
+            // Close socket
+            this.closeSocket();
+
             System.out.println("Sync " + this.syncInfo.getId() + " terminated.");
         }
     }

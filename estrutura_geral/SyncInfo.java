@@ -1,6 +1,5 @@
 import java.net.InetAddress;
 
-
 public class SyncInfo {
     private final String filepath;
     private final InetAddress ipAddress;
@@ -8,7 +7,12 @@ public class SyncInfo {
     private boolean active;
 
     public SyncInfo(String filepath, InetAddress ipAddress){
-        this.filepath = filepath;
+        // "home/rubensas" must be the same as "home/rubensas/"
+        if(filepath.endsWith("/"))
+            this.filepath = filepath.substring(0, filepath.length() - 1);
+        else
+            this.filepath = filepath;
+
         this.ipAddress = ipAddress;
         this.id = this.hashcode();
         this.active = false;
@@ -26,10 +30,15 @@ public class SyncInfo {
     public void activate() {
         this.active = true;
     }
-
+    public String getFilename(){
+        // TODO: testar
+        String[] pathArray = this.filepath.split("/");
+        return pathArray[pathArray.length - 1];
+    }
     private int hashcode(){
         return (this.filepath + this.ipAddress.toString()).hashCode();
     }
+
 
     @Override
     public boolean equals(Object o){
