@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -47,21 +48,19 @@ public class SyncHandler implements Runnable{
         // Get INIT header
         byte[] header = this.ftRapidHeader(INIT);
 
-        // TODO: need more info -> name of file
-        String filename = this.syncInfo.getFilename();
-        System.out.println(filename);
-
-        //byte[] filename;
-
         // Generate random integer byte array.
         byte[] rInt = ByteBuffer.allocate(4).putInt(new Random().nextInt()).array();
 
-        assert header != null;
-        byte[] rIntPacket = new byte[header.length + rInt.length];
+        // Filename to bytes.
+        byte[] filename = this.syncInfo.getFilename().getBytes(StandardCharsets.UTF_8);
 
-        // Copy header and random number to the same byte array.
+        assert header != null;
+        byte[] rIntPacket = new byte[header.length + rInt.length + filename.length];
+
+        // Copy header, random number and filename to the same byte array.
         System.arraycopy(header, 0, rIntPacket, 0, header.length);
         System.arraycopy(rInt, 0, rIntPacket, header.length, rInt.length);
+        System.arraycopy(filename, 0, rIntPacket, header.length + rInt.length, filename.length);
 
         // Random number packet always goes to other peer listener on port X - X is known and pre-defined.
         return new DatagramPacket(rIntPacket, rIntPacket.length, this.syncInfo.getIpAddress(), LISTENER_PORT);
@@ -77,20 +76,20 @@ public class SyncHandler implements Runnable{
             // Create packet with random number => destination=listener_port
             DatagramPacket randomNumberPacket = this.getRandomNumberPacket();
 
-            // Initiate sync.
-            int numberOfTimeouts = 0;
-            while(!this.syncSocket.isClosed() && numberOfTimeouts < 5) {
+            // Initiate sync - decide witch
+            while(!this.syncSocket.isClosed()) {
                 try {
+
+
                     // Send random number to other peer.
                     this.syncSocket.send(randomNumberPacket);
 
                     // TODO: Check if listener received random number from this ip with the same name of folder.
+                    
 
                 }
                 catch (SocketTimeoutException e){
                     // TIMEOUT: no problem...it will probably happen a few times in each start of sync.
-                    numberOfTimeouts++;
-                    System.out.println("timeout");
                 }
                 catch (IOException e){
                     e.printStackTrace();

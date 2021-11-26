@@ -36,7 +36,7 @@ public class SyncInfo {
         return pathArray[pathArray.length - 1];
     }
     private int hashcode(){
-        return (this.filepath + this.ipAddress.toString()).hashCode();
+        return (this.getFilename() + this.ipAddress.toString()).hashCode();
     }
 
 

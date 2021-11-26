@@ -1,7 +1,20 @@
+import java.net.InetAddress;
 
 
 public class Listener implements Runnable{
 
+
+
+    public Listener(){
+
+    }
+
+
+    public static int checkPendingRequests(String filename, InetAddress peerAddress){
+        // Check if there is any pending request with the respective filename and from the address given above.
+
+        return -1;
+    }
 
     @Override
     public void run() {
@@ -11,6 +24,10 @@ public class Listener implements Runnable{
          * UDP requests: Manage/Start FTRapid sync's.
          *
          * */
+
+        // TODO: Receive (in UDP) requests with opcode INIT - create list of pending requests.
+
+
 
     }
 }
