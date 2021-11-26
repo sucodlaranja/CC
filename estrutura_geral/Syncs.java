@@ -4,93 +4,70 @@ import java.util.*;
 /**
  * goal: save all clients sync information.
  * (accessed by Listener and Handler)
- * how?
- *  lists of
- *      active syncs
- *      pending syncs
  *
  * */
 public class Syncs {
 
-    public class Sync {
-        private final String filepath;
-        private final InetAddress ipAddress;
-        private final int id;
-        private boolean active;
-
-        public Sync(String filepath, InetAddress ipAddress){
-            this.filepath = filepath;
-            this.ipAddress = ipAddress;
-            this.id = this.hashcode();
-            this.active = false;
-        }
-
-        public String getFilepath() {
-            return filepath;
-        }
-        public InetAddress getIpAddress() {
-            return ipAddress;
-        }
-        public int getId() {
-            return id;
-        }
-
-        public boolean isActive() {
-            return active;
-        }
-        public void activate() {
-            this.active = true;
-        }
-
-        // TODO: Improve hashing mechanism.
-        private int hashcode(){
-            return (this.filepath + this.ipAddress.toString()).hashCode();
-        }
-
-        @Override
-        public boolean equals(Object o){
-            if (this == o) return true;
-            if (o == null) return false;
-            if (this.getClass() != o.getClass()) return false;
-            Sync sync = (Sync) o;
-            return this.filepath.equals(sync.getFilepath())
-                    && this.ipAddress.equals(sync.getIpAddress());
-        }
-
-        @Override
-        public String toString(){
-            return this.id + " - " +
-                    this.filepath + " - " +
-                    this.ipAddress.toString() + " - " +
-                    "active: " + this.active + "\n";
-        }
-
-    }
-
-    private final Map<Integer, Sync> syncs;
+    private final Map<Integer, SyncHandler> syncs;
 
     public Syncs(){
         this.syncs = new HashMap<>();
     }
 
+    /**
+     * Create SyncHandler
+     * */
     public boolean createSync(String filepath, InetAddress ipAddress){
         // Create Sync instance.
-        Sync value = new Sync(filepath, ipAddress);
+        SyncHandler value = new SyncHandler(filepath, ipAddress);
 
-        // Add Sync instance to pendingSyncs.
-        Integer key = value.getId();
+        // Add Sync instance to pendingSyncs - if not already there.
+        Integer key = value.getInfo().getId();
         if(!this.syncs.containsKey(key)){
             this.syncs.put(key, value);
+
+            // Create and start thread.
+            Thread syncHandlerThread = new Thread(value);
+            syncHandlerThread.start();
+
             return true;
         }
         return false;
     }
 
+    /**
+     * Terminate one specific or all syncs.
+     * */
+    public void terminate(String id) {
+        // TODO: HOW THE HELL DO I TERMINATE A SYNC !?!? Is it enough to close socket?
+
+        if (!id.equals("all")){
+            Integer key = Integer.parseInt(id);
+            if(this.syncs.containsKey(key)){
+                System.out.println("Terminating sync with id=" + key);
+                this.syncs.get(key).closeSocket();
+
+                this.syncs.remove(key);
+            }
+            else
+                System.out.println("Invalid id. Try \"> help\"");
+        }
+        else{
+            System.out.println("Terminating all syncs.");
+
+
+            this.syncs.clear(); // TODO: or maybe remove one by one...
+        }
+
+
+
+    }
+
     @Override
     public String toString(){
         StringBuilder stringBuilder = new StringBuilder();
-        for(Sync sync : this.syncs.values()){
-            stringBuilder.append(sync.toString());
+        for(SyncHandler sync : this.syncs.values()){
+            stringBuilder.append(sync.getInfo().toString());
         }
         return  stringBuilder.toString();
     }

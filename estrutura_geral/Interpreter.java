@@ -17,6 +17,9 @@ public class Interpreter implements Runnable{
         this.syncs = new Syncs();
     }
 
+    /**
+     * Start new sync.
+     * */
     private void syncStarter(String filepath, String addressStr){
 
         if(Files.exists(Path.of(filepath))){
@@ -25,9 +28,7 @@ public class Interpreter implements Runnable{
                 InetAddress address = InetAddress.getByName(addressStr);
                 System.out.println(addressStr + " is a valid ip address.");
 
-                // TODO: Create Handler Thread.
-
-                // TODO: Add to Syncs map -> CONCURRENCY ALERT!
+                // TODO: Create sync and respective handler -> CONCURRENCY ALERT!
                 this.syncs.createSync(filepath, address);
 
             }
@@ -57,7 +58,7 @@ public class Interpreter implements Runnable{
         if(!Objects.equals(this.firstCommandFilePath, "")
                 && !Objects.equals(this.firstCommandIPAddress, ""))
         {
-            // TODO: Start new Sync (user passed info through command line argument).
+            this.syncStarter(this.firstCommandFilePath, this.firstCommandIPAddress);
         }
 
         // Start interpreter.
@@ -77,15 +78,20 @@ public class Interpreter implements Runnable{
                         System.out.println("Invalid arguments. Try \"> help\"");
                 }
                 case "all" -> {
-                    System.out.println("Showing all the active syncs.");
+                    System.out.println("Showing all the active and pending syncs.");
                     System.out.println(this.syncs);
                 }
                 case "terminate" -> {
-                    System.out.println("Terminate all or only one?");
+                    if(splitInput.length > 1) {
+                        this.syncs.terminate(splitInput[1]);
+                    }
+                    else
+                        System.out.println("Invalid arguments. Try \"> help\"");
+
                 }
                 case "help" -> {
                     System.out.println("  FFSync <filepath> <ip>: Starts a new sync.");
-                    System.out.println("  all: Shows all the active syncs.");
+                    System.out.println("  all: Shows all the active syncs and respective id's.");
                     System.out.println("  terminate <sync_id>: Terminates specific sync.");
                     System.out.println("  terminate all: Terminates all syncs.");
                     System.out.println("  exit: Exits interpreter and closes all syncs.");
@@ -100,8 +106,8 @@ public class Interpreter implements Runnable{
         // Close Scanner.
         scanner.close();
 
-        // TODO: Close all the non-terminated synchronizations.
-
-
+        // Close all the non-terminated synchronizations.
+        this.syncs.terminate("all");
     }
+
 }
