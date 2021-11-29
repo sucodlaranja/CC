@@ -15,7 +15,7 @@ class UDPStopAndWaitClient{
     private static final int BUFFER_SIZE = 1024;
     private static final int PACKET_DATA_SIZE = 512;
     private static final int PACKET_SIZE = 514;
-    private static final String PATH = "/home/rubensas/UM/3ano1sem/CC/PL/TP2/send_file_protocol/iteration_1/test/p1/test_file.txt";
+    private static final String PATH = "/home/rubensas/UM/3ano1sem/CC/PL/TP2/send_file_protocol/iteration_1_2/test/p1/test_file.txt";
     private static final String FILENAME = "test_file.txt";
 
 

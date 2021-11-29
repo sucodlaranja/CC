@@ -18,7 +18,7 @@ class TransferFile implements Runnable{
     private static final byte[] ACK = {0};
     private static final byte DATA = 3;
 
-    private static final String FILEPATH= "/home/rubensas/UM/3ano1sem/CC/PL/TP2/send_file_protocol/iteration_1/test/p2/received.txt";
+    private static final String FILEPATH= "/home/rubensas/UM/3ano1sem/CC/PL/TP2/send_file_protocol/iteration_1_2/test/p2/received.txt";
 
     public TransferFile(int filesize, int packetSize, InetAddress address, int port) {
         this.PACKET_DATA_SIZE = packetSize - 2;
