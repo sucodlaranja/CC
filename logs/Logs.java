@@ -19,10 +19,6 @@ public class Logs {
     private final String filepath; // Lugar onde está a pasta
     private Map<String, FileTime> logs; // contém um map com os nomes dos ficheiros com os seus timestamps
 
-    public static final int Waiting = 0;
-    public static final int InProgress = 1;
-    public static final int Completed = 2;
-
     public static final int None = -1;
     public static final int Receiver = 0;
     public static final int Sender = 1;
@@ -72,13 +68,16 @@ public class Logs {
             }
             else mode = Sender;
 
-            if (mode != None) listOfTransfers.add(new Triplet<>(file.getKey(), mode, Waiting));
+            if (mode != None) listOfTransfers.add(new Triplet<>(file.getKey(), mode, 0));
         }
-        for(String fileName:  otherLogs.keySet()) listOfTransfers.add(new Triplet<>(fileName, Receiver, Waiting));
+        for(String fileName:  otherLogs.keySet()) listOfTransfers.add(new Triplet<>(fileName, Receiver, 0));
 
         return listOfTransfers;
     }
 
+
+
+    // TODO DEBUG REMOVE
     public void printTransfers(List<Triplet<String,Integer,Integer>> listOfTransfers){
         for (Triplet<String,Integer,Integer> t: listOfTransfers){
             System.out.println( t.getFirst() + " " + t.getSecond() + " " + t.getThird());

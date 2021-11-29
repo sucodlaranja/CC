@@ -80,12 +80,10 @@ public class SyncHandler implements Runnable{
             while(!this.syncSocket.isClosed()) {
                 try {
 
-
                     // Send random number to other peer.
                     this.syncSocket.send(randomNumberPacket);
 
                     // TODO: Check if listener received random number from this ip with the same name of folder.
-                    
 
                 }
                 catch (SocketTimeoutException e){
@@ -95,6 +93,9 @@ public class SyncHandler implements Runnable{
                     e.printStackTrace();
                 }
             }
+
+
+
         }
         catch (SocketException e) {
             System.out.println("Failed to create socket in sync " + this.syncInfo.getId() + ".");
