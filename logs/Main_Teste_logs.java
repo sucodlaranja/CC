@@ -1,13 +1,12 @@
-import javax.imageio.IIOException;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class Main_Teste_logs {
     public static void main(String[] args) {
         try {
-            Logs l1 = new Logs("C:\\Users\\jorge\\OneDrive\\Ambiente de Trabalho\\aa");
+            LogsManager l1 = new LogsManager("C:\\Users\\jorge\\OneDrive\\Ambiente de Trabalho\\aa");
             l1.printLogs();
-            Logs l2 = new Logs("C:\\Users\\jorge\\OneDrive\\Ambiente de Trabalho\\bb");
+            LogsManager l2 = new LogsManager("C:\\Users\\jorge\\OneDrive\\Ambiente de Trabalho\\bb");
 
 
             TimeUnit.MINUTES.sleep(0);

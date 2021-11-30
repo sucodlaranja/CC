@@ -11,9 +11,12 @@ import java.util.concurrent.locks.ReentrantLock;
  * */
 public class TransferHandler {
 
+    private int handlerPort;
+    private int ip;
+    private String path;
     private int nMaxFiles;
     private int allTransfers;
-    private List<Triplet<String,Integer,Integer>> listOfTransfers;
+    private List<TransferLogs> listOfTransfers;
     private Set<String> upcomingFiles;
 
     private ReentrantLock lock = new ReentrantLock();
@@ -23,15 +26,17 @@ public class TransferHandler {
     public static final int InProgress = 1;
     public static final int Completed = 2;
 
-    public TransferHandler(List<Triplet<String,Integer,Integer>> listOfTransfers){
+    public TransferHandler(List<TransferLogs> listOfTransfers,String path,int handlerPort,int ip){
+        this.handlerPort = handlerPort;
+        this.ip = ip;
         nMaxFiles = 3;
         allTransfers = listOfTransfers.size();
         this.listOfTransfers = new ArrayList<>(listOfTransfers);
         upcomingFiles = new HashSet<>();
+        this.path = path;
     }
 
     public class Listener implements Runnable{
-        private int LISTENER_PORT;
 
 
         @Override
@@ -41,18 +46,75 @@ public class TransferHandler {
     }
 
     public class ReceiveFile implements Runnable{
-        int SENDER_PORT;
+        // esabelece concecção e recebe o file
+
+        int listenerHandlerPort;
+        String fileName;
+        int ip;
+
+        public ReceiveFile(int listenerHandlerPort,String fileName,int ip){
+            this.listenerHandlerPort = listenerHandlerPort;
+            this.fileName = fileName;
+            this.ip = ip;
+        }
 
         @Override
         public void run() {
-            // esabelece concecção e recebe o file
+            //Receiver_UDP c = new Receiver_UDP(fileName,listenerHandlerPort,ip);
+            terminateTransfer(fileName);
+            lock.lock();
+            try {
+                nMaxFiles++;
+            }
+            finally {
+                lock.unlock();
+            }
+            condition.signal();
         }
     }
 
     public class SendFile implements Runnable{
+        // começa a enviar um file
+
+        int sendToPort;
+        String fileName;
+        int ip;
+
+        public SendFile(int sendToPort,String fileName,int ip){
+            this.sendToPort = sendToPort;
+            this.fileName = fileName;
+            this.ip = ip;
+        }
+
         @Override
         public void run() {
-            // começa a enviar um file
+
+            //Sender_UDP s = new Sender_UDP(path + filepath,portaEnvio,ip);
+            terminateTransfer(fileName);
+            lock.lock();
+            try {
+                nMaxFiles++;
+                upcomingFiles.remove(fileName);
+            }
+            finally {
+                lock.unlock();
+            }
+            condition.signal();
+        }
+    }
+
+    private void terminateTransfer(String fileName){
+        lock.lock();
+        try {
+            for (TransferLogs transfer : listOfTransfers){
+                if (transfer.getFileName().equals(fileName) && transfer.getStateOfTransfer() == InProgress){
+                    transfer.setStateOfTransfer(Completed);
+                    break;
+                }
+            }
+        }
+        finally {
+            lock.unlock();
         }
     }
 
@@ -62,30 +124,46 @@ public class TransferHandler {
         listener.start();
 
         while (allTransfers > 0){
-            while (nMaxFiles > 0){
-                oneTransfer();
-                allTransfers--;
-                nMaxFiles--;
+
+            lock.lock();
+            try {
+                while (nMaxFiles > 0){
+                    oneTransfer();
+                    allTransfers--;
+                    nMaxFiles--;
+                }
             }
+            finally {
+                lock.unlock();
+            }
+
             try {
                 condition.await();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+
         }
     }
 
     private void oneTransfer(){
-        for (Triplet<String,Integer,Integer> transfer : listOfTransfers){
-            if (transfer.getThird() == Waiting){
-                if (transfer.getSecond() == Logs.Sender) {
-                    Thread request = new Thread(new ReceiveFile());
-                    request.start();
+        lock.lock();
+        try {
+            for (TransferLogs transfer : listOfTransfers){
+                if (transfer.getStateOfTransfer() == Waiting){
+                    if (transfer.isSenderOrReceiver()) {
+                        Thread request = new Thread(new ReceiveFile(handlerPort,transfer.getFileName(),ip));
+                        request.start();
+                    }
+                    else upcomingFiles.add(transfer.getFileName());
+                    transfer.setStateOfTransfer(InProgress);
+                    break;
                 }
-                else if (transfer.getSecond() == Logs.Receiver) upcomingFiles.add(transfer.getFirst());
-                transfer.setThird(InProgress);
-                return;
             }
         }
+        finally {
+            lock.unlock();
+        }
     }
+
 }
