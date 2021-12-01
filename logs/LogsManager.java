@@ -3,10 +3,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -51,18 +48,18 @@ public class LogsManager {
         return this.insertFileLogs(Paths.get(filepath),"");
     }
 
-    public List<TransferLogs> compareLogs(Map<String, FileTime> otherLogs){
-        List<TransferLogs> listOfTransfers = new ArrayList<>();
+    public Queue<TransferLogs> compareLogs(Map<String, FileTime> otherLogs){
+        Queue<TransferLogs> listOfTransfers = new PriorityQueue<>();
 
         for(Map.Entry<String, FileTime> file:  this.logs.entrySet()){
             if (otherLogs.containsKey(file.getKey())){
                 int comp = otherLogs.remove(file.getKey()).compareTo(file.getValue());
-                if (comp > 0) listOfTransfers.add(new TransferLogs(file.getKey(), true, 0));
-                else if (comp < 0) listOfTransfers.add(new TransferLogs(file.getKey(), false, 0));
+                if (comp > 0) listOfTransfers.add(new TransferLogs(file.getKey(), true));
+                else if (comp < 0) listOfTransfers.add(new TransferLogs(file.getKey(), false));
             }
-            else listOfTransfers.add(new TransferLogs(file.getKey(), false, 0));
+            else listOfTransfers.add(new TransferLogs(file.getKey(), false));
         }
-        for(String fileName:  otherLogs.keySet()) listOfTransfers.add(new TransferLogs(fileName, true, 0));
+        for(String fileName:  otherLogs.keySet()) listOfTransfers.add(new TransferLogs(fileName, true));
 
         return listOfTransfers;
     }
@@ -70,9 +67,9 @@ public class LogsManager {
 
 
     // TODO DEBUG REMOVE
-    public void printTransfers(List<TransferLogs> listOfTransfers){
+    public void printTransfers(Queue<TransferLogs> listOfTransfers){
         for (TransferLogs t: listOfTransfers){
-            System.out.println( t.getFileName() + " " + t.isSenderOrReceiver() + " " + t.getStateOfTransfer());
+            System.out.println( t.getFileName() + " " + t.isSenderOrReceiver());
         }
     }
 
