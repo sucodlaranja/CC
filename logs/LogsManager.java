@@ -49,11 +49,12 @@ public class LogsManager {
     }
 
     public Queue<TransferLogs> compareLogs(Map<String, FileTime> otherLogs){
-        Queue<TransferLogs> listOfTransfers = new PriorityQueue<>();
+        Queue<TransferLogs> listOfTransfers = new LinkedList<>();
 
         for(Map.Entry<String, FileTime> file:  this.logs.entrySet()){
             if (otherLogs.containsKey(file.getKey())){
                 int comp = otherLogs.remove(file.getKey()).compareTo(file.getValue());
+
                 if (comp > 0) listOfTransfers.add(new TransferLogs(file.getKey(), true));
                 else if (comp < 0) listOfTransfers.add(new TransferLogs(file.getKey(), false));
             }
