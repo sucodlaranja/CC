@@ -1,5 +1,5 @@
 /**
- * Esta classe representa os logs de um ficheiro.
+ * Represents entry of a transfer.
  */
 public record TransferLogs(String fileName, boolean senderOrReceiver) {
 
