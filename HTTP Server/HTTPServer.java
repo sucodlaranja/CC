@@ -68,12 +68,29 @@ public class HTTPServer implements Runnable {
             }
         
     }
-
+    /**
+     * TODO colocar isto nas cenas dos logsmanagers out.write(("<a href=\"http://localhost:8081/\">back</a>").getBytes());
+     * Este metodo vai receber e "resolver" o pedido feito ao nosso server http
+     */
     public void getHandler(String argument,Map<String,LogsManager> syncs,OutputStream out) throws IOException {
+        String [] splitArgument = argument.split("/");
+        
         if(argument.equals("/")) {
             mainMenu(syncs,out);
         }
-        else System.out.println(argument);
+        else if(splitArgument.length == 2) {
+            for(Map.Entry<String,LogsManager> entry :syncs.entrySet()) {
+                // TODO tem de ser direcionado para um metodo que mostra os logsmanagers 
+                if(splitArgument[1].equals(entry.getKey())) {
+                    out.write(("<b><h1>"+ entry.getKey() + "</h1></b>").getBytes());
+                    break;
+                }
+            }
+        }
+        else if(splitArgument.length == 3) {
+            //TODO fazer dps de ter definido a cena, é colocar o metodo que vai deixar/parar de um file de sincronizar
+            out.write(("<b><h1>OH maluco esta parte e dos logs que ainda nao ta feito</h1></b>").getBytes());
+        }
     }
     
 
@@ -88,13 +105,7 @@ public class HTTPServer implements Runnable {
         }
     }
 
-
-
-    public static void newdirectory(String filename,OutputStream out) throws IOException {
-        out.write(("<a href=\"http://localhost:8081/\">back</a>").getBytes());
-        out.write(("<p>teste nova directory</p>" + "<h1>" + "</h1>").getBytes());
-
-    }
+    // TODO apagar isto depois, e so para testes.
     public static void main(String[] args) {
         try {
             Thread server = new Thread(new HTTPServer(8081));
