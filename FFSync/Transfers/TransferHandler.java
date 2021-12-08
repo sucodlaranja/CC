@@ -1,5 +1,7 @@
 package Transfers;
 
+import FTRapid.ReceiverSNW;
+import FTRapid.SenderSNW;
 import Logs.TransferLogs;
 import Transfers.FilesWaitingRequestPool;
 import Transfers.ThreadPool;
@@ -21,8 +23,8 @@ public class TransferHandler {
     private final FilesWaitingRequestPool filesWaitingRequestPool;
 
     // Basic Constructor
-    public TransferHandler(int nMaxFiles){
-        threadPool = new ThreadPool(nMaxFiles);
+    public TransferHandler(int maxThreads){
+        threadPool = new ThreadPool(maxThreads);
         filesWaitingRequestPool = new FilesWaitingRequestPool();
     }
 
@@ -91,22 +93,27 @@ public class TransferHandler {
 
         private final int sendToPort;
         private final InetAddress sendToIpAddress;
-        private final String fileName;
+        private final String filepath;
 
         public SendFile(int sendToPort,InetAddress sendToIpAddress,String filepath){
             this.sendToPort = sendToPort;
             this.sendToIpAddress = sendToIpAddress;
-            this.fileName = filepath;
+            this.filepath = filepath;
         }
 
         @Override
         public void run() {
+            // TODO: meter a funcionar
+            //SenderSNW senderSNW = new SenderSNW(sendToIpAddress, sendToPort, filepath);
+            //record = senderSNW.send();
+
             //Sender_UDP s = new Sender_UDP(sendToPort,sendToIpAddress,filepath);
             threadPool.inc_dec_nMaxFiles(1);
         }
     }
 
     // Threads that request a file
+    // TODO: CHANGE NAME TO REQUEST AND RECEIVE FILE OR SIMILAR
     private class ReceiveFile implements Runnable{
         // esabelece concecção e recebe o file
 
@@ -122,6 +129,10 @@ public class TransferHandler {
 
         @Override
         public void run() {
+            // TODO: mandar cena qualquer para listener do outro par -> pacote qq
+            //ReceiverSNW receiverSNW = new ReceiverSNW();
+            //receiverSNW.receive();
+
             //Receiver_UDP c = new Receiver_UDP(requestToPort,requestToIpAddress,fileName);
             System.out.println("Transfer file -> " + fileName + " ...");
             try {
@@ -137,14 +148,16 @@ public class TransferHandler {
 
     // Checks in what way to interpreter the queue
     // (It depends on if I am the one that creates the guide and what the guide says)
-    public boolean doIRequest(boolean biggerNumber,boolean isSenderOrReceiver){
+    private boolean doIRequest(boolean biggerNumber, boolean isSenderOrReceiver){
         if (biggerNumber) return isSenderOrReceiver;
         else return !isSenderOrReceiver;
     }
 
     // Main method of this class
+    // TODO : PROCESS transfers apenas executa uma vez -> boolean
     public void processTransfers(Queue<TransferLogs> transfersGuide, String filepath, DatagramSocket syncSocket,
-                                 InetAddress ipAddress, int sendToPortHandler, boolean biggerNumber) {
+                                 InetAddress ipAddress, int sendToPortHandler, boolean biggerNumber)
+    {
 
         // Creates a listener to ear requests
         Thread listener = new Thread(new Listener(syncSocket,ipAddress,filepath));

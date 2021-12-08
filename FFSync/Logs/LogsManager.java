@@ -1,13 +1,10 @@
 package Logs;
 
-import Logs.TransferLogs;
-
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * This class represents the logs of a given file,
@@ -26,6 +23,18 @@ public class LogsManager {
         updateFileLogs();
     }
 
+    // Construct logs from bytes
+    public LogsManager(byte[] logBytes){
+        // TODO: construir uma instância de logsmanager a partir de um array de bytes.
+        filepath = "";
+        logs = null;
+    }
+
+    public byte[] getBytes(){
+        // TODO: serializar esta instância para que possamos construir um logsmanager a partir de um byte[] (construtor acima)
+    }
+
+
     // Basic getLogs method
     public Map<String, FileTime> getLogs(){
         return new HashMap<>(logs);
@@ -35,7 +44,7 @@ public class LogsManager {
     private boolean updateFileLogsAux(Path folder, String prePath) throws IOException {
         boolean update = false; // Was there a cache on the logs
 
-        for(Path file: Files.list(folder).collect(Collectors.toList())) {
+        for(Path file: Files.list(folder).toList()) {
 
             // If the file is a directory call recursively
             if (Files.isDirectory(file)) updateFileLogsAux(file,prePath + file.getFileName().toString() + "/");

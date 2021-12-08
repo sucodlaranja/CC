@@ -6,7 +6,6 @@ import Logs.LogsManager;
 
 import java.io.IOException;
 import java.net.*;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Random;
 
@@ -59,7 +58,7 @@ public class SyncHandler implements Runnable{
         }
 
         // Create INIT_ACK packet (default port is LISTENER).
-        DatagramPacket init_ack = FTRapidPacket.getInitAckPacket(this.syncInfo);
+        DatagramPacket init_ack = FTRapidPacket.getINITACKPacket(this.syncInfo);
 
         // Port number of the peer Syncs.SyncHandler.
         int peerHandlerPort = -1;
@@ -133,7 +132,7 @@ public class SyncHandler implements Runnable{
             this.syncSocket = new DatagramSocket();
 
             // Create packet with random number => destination=listener_port
-            DatagramPacket randomNumberPacket = FTRapidPacket.getRandomNumberPacket(this.ourRandom, this.syncInfo);
+            DatagramPacket randomNumberPacket = FTRapidPacket.getINITPacket(this.ourRandom, this.syncInfo);
 
             // Initiate sync
             boolean nextStep = false;
