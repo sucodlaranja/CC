@@ -1,13 +1,18 @@
 package Syncs;
 
 import FTRapid.FTRapidPacket;
+import FTRapid.ReceiverSNW;
+import FTRapid.SenderSNW;
 import Listener.Listener;
 import Logs.LogsManager;
+import Logs.TransferLogs;
 
 import java.io.IOException;
 import java.net.*;
 import java.util.List;
+import java.util.Queue;
 import java.util.Random;
+
 
 /**
  * Handle each sync with another peer.
@@ -97,11 +102,21 @@ public class SyncHandler implements Runnable{
 
         // TODO: Para enviar e receber precisamos de ter implementada a parte de send_receive_files_protocol.
 
+        // Serialize logs.
+        byte[] logs = logsManager.getBytes();
+
         // Send logs to peer handler port.
-        // TODO: <chamar metodo que envia cenas do protocolo...os logs tem de ser serializados ou algo assim>
+        SenderSNW senderSNW = new SenderSNW(this.syncSocket, this.syncInfo.getIpAddress(), peerHandlerPort, logs, FTRapidPacket.LOGS);
+        senderSNW.send();
 
         // Wait and receive guide
-        // TODO: ver qual o formato do guia e guardar como variavel de instancia. para receber temos de chamar o metodo do protocolo que trata desta parte...
+        // TODO: ver qual o formato do guia e guardar como variavel de instancia.
+        //  para receber temos de chamar o metodo do protocolo que trata desta parte...
+        ReceiverSNW receiverSNW = new ReceiverSNW(this.syncInfo.getIpAddress(), peerHandlerPort, this.syncInfo.getFilepath(), this.syncInfo.getFilename());
+
+
+        Queue<TransferLogs> g = (Queue<TransferLogs>) receiverSNW.requestAndReceive();
+
 
         return false; // ABORT SYNC = FALSE.
     }

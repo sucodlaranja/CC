@@ -3,15 +3,11 @@ package Transfers;
 import FTRapid.ReceiverSNW;
 import FTRapid.SenderSNW;
 import Logs.TransferLogs;
-import Transfers.FilesWaitingRequestPool;
-import Transfers.ThreadPool;
-
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Handle the guide.
@@ -22,10 +18,29 @@ public class TransferHandler {
     private final ThreadPool threadPool;
     private final FilesWaitingRequestPool filesWaitingRequestPool;
 
+    // Used for processTransfers.
+    private boolean checkProcessTransfers;
+    private final Queue<TransferLogs> transfersGuide;
+    private final String filepath;
+    private final DatagramSocket syncSocket;
+    private final InetAddress address;
+    private final int handlerPort;
+    private final boolean biggerNumber;
+
+
     // Basic Constructor
-    public TransferHandler(int maxThreads){
-        threadPool = new ThreadPool(maxThreads);
-        filesWaitingRequestPool = new FilesWaitingRequestPool();
+    public TransferHandler(int maxThreads, Queue<TransferLogs> transfersGuide, String filepath,
+                           DatagramSocket syncSocket, InetAddress ipAddress, int handlerPort, boolean biggerNumber)
+    {
+        this.threadPool = new ThreadPool(maxThreads);
+        this.filesWaitingRequestPool = new FilesWaitingRequestPool();
+        this.checkProcessTransfers = false;
+        this.transfersGuide = transfersGuide;
+        this.filepath = filepath;
+        this.syncSocket = syncSocket;
+        this.address = ipAddress;
+        this.handlerPort = handlerPort;
+        this.biggerNumber = biggerNumber;
     }
 
     // Threads that listen for requests
@@ -103,44 +118,37 @@ public class TransferHandler {
 
         @Override
         public void run() {
-            // TODO: meter a funcionar
-            //SenderSNW senderSNW = new SenderSNW(sendToIpAddress, sendToPort, filepath);
-            //record = senderSNW.send();
+            // Send file.
+            SenderSNW senderSNW = new SenderSNW(sendToIpAddress, sendToPort, filepath);
+            senderSNW.send();
 
-            //Sender_UDP s = new Sender_UDP(sendToPort,sendToIpAddress,filepath);
             threadPool.inc_dec_nMaxFiles(1);
         }
     }
 
-    // Threads that request a file
-    // TODO: CHANGE NAME TO REQUEST AND RECEIVE FILE OR SIMILAR
+    // Threads that requests and receives a file.
     private class ReceiveFile implements Runnable{
         // esabelece concecção e recebe o file
 
-        private final int requestToPort;
-        private final InetAddress requestToIpAddress;
-        private final String fileName;
+        private final int port;
+        private final InetAddress address;
+        private final String filepath;
+        private final String filename;
 
-        public ReceiveFile(int requestToPort,InetAddress requestToIpAddress,String fileName){
-            this.requestToPort = requestToPort;
-            this.requestToIpAddress = requestToIpAddress;
-            this.fileName = fileName;
+        public ReceiveFile(int port, InetAddress address, String filepath, String filename){
+            this.port = port;
+            this.address = address;
+            this.filepath = filepath;
+            this.filename = filename;
         }
 
         @Override
         public void run() {
-            // TODO: mandar cena qualquer para listener do outro par -> pacote qq
-            //ReceiverSNW receiverSNW = new ReceiverSNW();
-            //receiverSNW.receive();
+            System.out.println("Transfering file: " + filename + ".");
+            ReceiverSNW receiverSNW = new ReceiverSNW(this.address, this.port, this.filepath, this.filename);
+            receiverSNW.requestAndReceive();
+            System.out.println(" Finished.");
 
-            //Receiver_UDP c = new Receiver_UDP(requestToPort,requestToIpAddress,fileName);
-            System.out.println("Transfer file -> " + fileName + " ...");
-            try {
-                TimeUnit.SECONDS.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            System.out.println(" Done Transfer file -> " + fileName + "!");
             threadPool.inc_dec_nMaxFiles(1);
             //condition.signalAll();
         }
@@ -154,13 +162,13 @@ public class TransferHandler {
     }
 
     // Main method of this class
-    // TODO : PROCESS transfers apenas executa uma vez -> boolean
-    public void processTransfers(Queue<TransferLogs> transfersGuide, String filepath, DatagramSocket syncSocket,
-                                 InetAddress ipAddress, int sendToPortHandler, boolean biggerNumber)
-    {
+    public void processTransfers(){
+        // Execute processTransfers only once.
+        if(checkProcessTransfers)
+            return;
 
         // Creates a listener to ear requests
-        Thread listener = new Thread(new Listener(syncSocket,ipAddress,filepath));
+        Thread listener = new Thread(new Listener(syncSocket, address, filepath));
         listener.start();
 
         // Saves the size of the guide of transfers and the maximum of threads allowed per connection
@@ -178,7 +186,7 @@ public class TransferHandler {
             // Verifies if I am the one to request the file
             if (doIRequest(biggerNumber,oneTransfer.isSenderOrReceiver())) {
                 // Starts the thread to request the file
-                Thread t = new Thread(new ReceiveFile(sendToPortHandler,ipAddress,oneTransfer.getFileName()));
+                Thread t = new Thread(new ReceiveFile(handlerPort, address, filepath ,oneTransfer.getFileName()));
                 t.start();
             }
             // Adds the file on the set of files that the other user wants to transfer
@@ -200,5 +208,6 @@ public class TransferHandler {
             e.printStackTrace();
         }
 
+        this.checkProcessTransfers = true;
     }
 }
