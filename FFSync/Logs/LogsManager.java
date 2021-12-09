@@ -1,11 +1,11 @@
 package Logs;
 
 import java.io.*;
-import java.net.DatagramSocket;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.*;
+
 
 
 /**
@@ -35,8 +35,10 @@ public class LogsManager {
 
         try {
             int size = dataInputStream.readInt();
-            for(int i = 0;i<size;i++) {
-                logs.put(dataInputStream.readUTF(),FileTime.fromMillis( dataInputStream.readLong()));
+            for(int i = 0; i < size; i++) {
+                String name = dataInputStream.readUTF();
+                FileTime fileTime = FileTime.fromMillis(dataInputStream.readLong());
+                logs.put(name, fileTime);
             }
         }
         catch (IOException e) {
@@ -44,6 +46,7 @@ public class LogsManager {
         }
     }
 
+    // Serialize this class...
     public byte[] getBytes() {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         DataOutputStream dataOutputStream = new DataOutputStream(outputStream);
@@ -55,7 +58,8 @@ public class LogsManager {
                 dataOutputStream.writeLong(log.getValue().toMillis());
             }
             dataOutputStream.flush();
-        } catch (IOException ioException) {
+        }
+        catch (IOException ioException) {
             ioException.printStackTrace();
         }
 
@@ -99,26 +103,8 @@ public class LogsManager {
     }
 
     // Compare logs and generates the guide (queue) of transfers
-    public Queue<TransferLogs> compareLogs(Map<String, FileTime> otherLogs){
-        // Create guide
-        Queue<TransferLogs> listOfTransfers = new LinkedList<>();
-
-        // Compares all the files that I have on my logs
-        for(Map.Entry<String, FileTime> file:  this.logs.entrySet()){
-            // Compares his file and mine
-            if (otherLogs.containsKey(file.getKey())){
-                int comp = otherLogs.remove(file.getKey()).compareTo(file.getValue());
-
-                if (comp > 0) listOfTransfers.add(new TransferLogs(file.getKey(), true));
-                else if (comp < 0) listOfTransfers.add(new TransferLogs(file.getKey(), false));
-            }
-            // The other guy does not have this file
-            else listOfTransfers.add(new TransferLogs(file.getKey(), false));
-        }
-        // Adds all the files that he has, and I don't.
-        for(String fileName:  otherLogs.keySet()) listOfTransfers.add(new TransferLogs(fileName, true));
-
-        return listOfTransfers;
+    public Guide compareLogs(Map<String, FileTime> otherLogs){
+        return new Guide(this.getLogs(), otherLogs);
     }
 
 
@@ -129,7 +115,6 @@ public class LogsManager {
             System.out.println( t.getFileName() + " " + t.isSenderOrReceiver());
         }
     }
-
     public void printLogs(){
         logs.forEach((key, value) -> System.out.println(key + " -> " + value.toString()));
     }

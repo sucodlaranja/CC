@@ -4,13 +4,13 @@ import FTRapid.FTRapidPacket;
 import FTRapid.ReceiverSNW;
 import FTRapid.SenderSNW;
 import Listener.Listener;
+import Logs.Guide;
 import Logs.LogsManager;
-import Logs.TransferLogs;
+import Transfers.TransferHandler;
 
 import java.io.IOException;
 import java.net.*;
 import java.util.List;
-import java.util.Queue;
 import java.util.Random;
 
 
@@ -20,9 +20,14 @@ import java.util.Random;
  * */
 public class SyncHandler implements Runnable{
 
+    private final int MAX_THREADS_PER_TRANSFER = 5;
+
     private final SyncInfo syncInfo;
     private final Integer ourRandom;
     private DatagramSocket syncSocket;
+
+    private boolean isBiggerNumber;
+    private int handlerPort;
 
     public SyncHandler(String filepath, InetAddress address){
         this.syncInfo = new SyncInfo(filepath, address);
@@ -40,7 +45,7 @@ public class SyncHandler implements Runnable{
 
     // ourRandom < peerRandom
     // returns true if sync has to be aborted, false if sync can proceed.
-    private boolean inferiorRandomHandler() {
+    private Guide inferiorRandomHandler() {
         /*
         calculate logs
         loop:
@@ -51,6 +56,9 @@ public class SyncHandler implements Runnable{
         wait and receive guide
         */
 
+        // We're inferior.
+        this.isBiggerNumber = false;
+
         // Calculate logs
         LogsManager logsManager = null;
         try {
@@ -59,14 +67,14 @@ public class SyncHandler implements Runnable{
         catch (IOException e){
             System.out.println("Failed to create logs from: " + this.syncInfo.getFilepath());
             e.printStackTrace();
-            return true; // ABORT SYNC = TRUE.
         }
+
+        // Abort sync if the LOGS can't be created.
+        if(logsManager == null)
+            return null; // ABORT SYNC = null.
 
         // Create INIT_ACK packet (default port is LISTENER).
         DatagramPacket init_ack = FTRapidPacket.getINITACKPacket(this.syncInfo);
-
-        // Port number of the peer Syncs.SyncHandler.
-        int peerHandlerPort = -1;
 
         // Sends INIT_ACK and waits for ACK.
         boolean ack_received = false;
@@ -76,7 +84,7 @@ public class SyncHandler implements Runnable{
                 this.syncSocket.send(init_ack);
 
                 // Create buffer and receive ack packet.
-                byte[] ack_buffer = new byte[8]; // TODO: MAYBE USE MACRO TO REPRESENT ACK SIZE.
+                byte[] ack_buffer = new byte[FTRapidPacket.ACK_BUFFER];
                 DatagramPacket ack_packet = new DatagramPacket(ack_buffer, ack_buffer.length);
 
                 // Set timeout to receive ACK packet. ACK has to arrive while we wait...
@@ -85,10 +93,13 @@ public class SyncHandler implements Runnable{
                 // Wait for ack (if timeout is reached, restart loop).
                 this.syncSocket.receive(ack_packet);
 
-                // TODO: Check if packet is valid
-                if(new FTRapidPacket(ack_packet).getOPCODE() == FTRapidPacket.ACK){
+                // Check packet is ACK and sequence number is CONTROL_SEQ_NUM
+                FTRapidPacket ftRapidPacket = new FTRapidPacket(ack_packet);
+                if(ftRapidPacket.getOPCODE() == FTRapidPacket.ACK
+                    && ftRapidPacket.getSequenceNumber() == FTRapidPacket.CONTROL_SEQ_NUM)
+                {
                     ack_received = true;
-                    peerHandlerPort = ack_packet.getPort();
+                    this.handlerPort = ack_packet.getPort();
                 }
             }
             catch (SocketTimeoutException e){
@@ -99,30 +110,20 @@ public class SyncHandler implements Runnable{
             }
         }
 
-
-        // TODO: Para enviar e receber precisamos de ter implementada a parte de send_receive_files_protocol.
-
         // Serialize logs.
         byte[] logs = logsManager.getBytes();
 
         // Send logs to peer handler port.
-        SenderSNW senderSNW = new SenderSNW(this.syncSocket, this.syncInfo.getIpAddress(), peerHandlerPort, logs, FTRapidPacket.LOGS);
+        SenderSNW senderSNW = new SenderSNW(this.syncSocket, this.syncInfo.getIpAddress(), this.handlerPort, logs, FTRapidPacket.LOGS);
         senderSNW.send();
 
-        // Wait and receive guide
-        // TODO: ver qual o formato do guia e guardar como variavel de instancia.
-        //  para receber temos de chamar o metodo do protocolo que trata desta parte...
-        ReceiverSNW receiverSNW = new ReceiverSNW(this.syncInfo.getIpAddress(), peerHandlerPort, this.syncInfo.getFilepath(), this.syncInfo.getFilename());
-
-
-        Queue<TransferLogs> g = (Queue<TransferLogs>) receiverSNW.requestAndReceive();
-
-
-        return false; // ABORT SYNC = FALSE.
+        // Wait, receive and return guide.
+        ReceiverSNW receiverSNW = new ReceiverSNW(this.syncSocket, FTRapidPacket.GUIDE, null, -1);
+        return new Guide(receiverSNW.requestAndReceive()); // ABORT SYNC = FALSE.
     }
 
     // ourRandom > peerRandom
-    private void superiorRandomHandler(int peerHandlerPort) {
+    private Guide superiorRandomHandler() {
         // found INIT_ACK
         /*
         * loop:
@@ -134,12 +135,39 @@ public class SyncHandler implements Runnable{
         * send guide
         * */
 
+        // We're superior.
+        this.isBiggerNumber = true;
 
+        // Acknowledge that we've received the INIT_ACK packet and receive LOGS.
+        ReceiverSNW receiverSNW = new ReceiverSNW(this.syncSocket, FTRapidPacket.LOGS, this.getInfo().getIpAddress(), this.handlerPort);
+        LogsManager beta = new LogsManager(receiverSNW.requestAndReceive());
 
+        // Get our logs.
+        // Calculate logs
+        LogsManager alfa = null;
+        try {
+            alfa = new LogsManager(this.syncInfo.getFilepath());
+        }
+        catch (IOException e){
+            System.out.println("Failed to create logs from: " + this.syncInfo.getFilepath());
+            e.printStackTrace();
+        }
+
+        // Abort sync -> can't create our logs.
+        if(alfa == null)
+            return null;
+
+        // Calculate Guide.
+        Guide guide = new Guide(alfa.getLogs(), beta.getLogs());
+
+        // Send guide.
+        SenderSNW senderSNW = new SenderSNW(this.syncSocket, this.getInfo().getIpAddress(), this.handlerPort, guide.getBytes(), FTRapidPacket.GUIDE);
+        senderSNW.send();
+
+        return guide; // ABORT SYNC = null.
     }
 
-    @Override
-    public void run() {
+    private void syncOnce(){
         try {
             // TODO: ABORT SYNC IN CASE THE OTHER PEER ABORTED...CREATE TIMEOUT'S OR SOMETHING
 
@@ -151,7 +179,7 @@ public class SyncHandler implements Runnable{
 
             // Initiate sync
             boolean nextStep = false;
-            boolean abortSync = false;
+            Guide guide = null;
             while(!this.syncSocket.isClosed() && !nextStep) {
 
                 // Check list of pending requests in Listener.Listener (INIT and INIT_ACK).
@@ -169,12 +197,13 @@ public class SyncHandler implements Runnable{
                     }
                     case 1 -> {
                         // ourRandom < peerRandom: send INIT_ACK, calculate logs, send logs, wait for guide.
-                        abortSync = this.inferiorRandomHandler();
+                        guide = this.inferiorRandomHandler();
                         nextStep = true;
                     }
                     case 2 -> {
                         // found INIT_ACK - wait for logs, get logs, calculate guide, send guide.
-                        this.superiorRandomHandler(reqStatus.get(1));
+                        this.handlerPort = reqStatus.get(1);
+                        guide = this.superiorRandomHandler();
                         nextStep = true;
                     }
                     default -> {
@@ -184,15 +213,16 @@ public class SyncHandler implements Runnable{
                 }
 
                 // ABORT SYNC IF NEEDED.
-                if(abortSync)
+                if(guide == null)
                     this.closeSocket();
 
                 // TODO: Insert some waiting time? Maybe only check pending requests if anything changed...
             }
 
             // Check if socket is closed: something might have failed.
-            if(!this.syncSocket.isClosed()) {
-                // TODO do jorge: Já temos o guião, e agora o jorge faz a magia.
+            if(!this.syncSocket.isClosed() && guide != null) {
+                TransferHandler transferHandler = new TransferHandler(MAX_THREADS_PER_TRANSFER, guide, this.syncInfo.getFilepath(), this.syncSocket, this.syncInfo.getIpAddress(), this.handlerPort, this.isBiggerNumber);
+                transferHandler.processTransfers();
             }
 
         }
@@ -205,6 +235,12 @@ public class SyncHandler implements Runnable{
             this.closeSocket();
             System.out.println("Sync " + this.syncInfo.getId() + " terminated.");
         }
+    }
+
+    @Override
+    public void run() {
+        while(!this.syncSocket.isClosed())
+            this.syncOnce();
     }
 
 }

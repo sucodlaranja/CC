@@ -1,8 +1,6 @@
 package FTRapid;
 
 
-import Logs.LogsManager;
-
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -16,6 +14,9 @@ public class ReceiverSNW {
     private final DatagramSocket socket;
     private final InetAddress ADDRESS;
     private int PORT; // starts as listenerPort and then represents senders port.
+
+    // Mode can be FILE, LOGS or GUIDE.
+    private final int MODE;
 
     // Filename/path.
     private final String filepath;
@@ -37,6 +38,7 @@ public class ReceiverSNW {
             this.socket = localSocket;
             this.filepath = filepath;
             this.filename = filename;
+            this.MODE = FTRapidPacket.FILE;
         }
 
         this.ADDRESS = address;
@@ -44,10 +46,11 @@ public class ReceiverSNW {
     }
 
     // LOGS and GUIDE.
-    public ReceiverSNW(DatagramSocket socket){
+    public ReceiverSNW(DatagramSocket socket, int MODE, InetAddress address, int handlerPort){
         this.socket = socket;
-        this.ADDRESS = null;
-        this.PORT = -1;
+        this.MODE = MODE;
+        this.ADDRESS = address;
+        this.PORT = handlerPort;
         this.filename = "";
         this.filepath = "";
     }
@@ -55,36 +58,45 @@ public class ReceiverSNW {
     // Request the file to the other peer. Sending packet to the transfer handler listener.
     // Wait and approve META by sending an ACK packet to the sender socket.
     // TODO: simplify code -> "while(timeout){}" piece of code is similar...
-    public Object requestAndReceive() {
+    public byte[] requestAndReceive() {
 
-        // Create RQF (request file) packet. PORT corresponds to listener port.
+        // Create RQF (request file) packet. Only useful if MODE=FILE. PORT corresponds to listener port.
         DatagramPacket RQF = FTRapidPacket.getRQFPacket(this.ADDRESS, this.PORT, this.filename);
+
+        // Create ACK packet. Useful if MODE=LOGS. We need to aknowledge INIT_ACK packet and wait for META.
+        DatagramPacket ACK_CONTROL = FTRapidPacket.getACKPacket(this.ADDRESS, this.PORT, FTRapidPacket.CONTROL_SEQ_NUM);
 
         // Send RQF packet and wait for approval a.k.a. META packet.
         // Save META packet.
+        // In case we're waiting to receive a LOG or Guide, we won't send RQF packets...RQF is only used for files...
         FTRapidPacket meta_FTRapidPacket = null;
         boolean timedOut = true;
         while (timedOut) {
-            try {
-                // Send RQF packet.
-                socket.send(RQF);
+            try     {
+                // Send RQF packet if FILE mode is the current mode.
+                if(this.MODE == FTRapidPacket.FILE)
+                    socket.send(RQF);
+                // Aknowledge INIT_ACK with a control ACK and wait for META.
+                else if(this.MODE == FTRapidPacket.LOGS)
+                    socket.send(ACK_CONTROL);
 
                 // Create a byte array to receive META.
                 byte[] receiveData = new byte[FTRapidPacket.BUFFER_SIZE];
 
                 // Receive the server's packet
                 DatagramPacket received = new DatagramPacket(receiveData, receiveData.length);
-                socket.setSoTimeout(5000); // TODO: TIMEOUT
+                socket.setSoTimeout(5000); // TODO: TIMEOUT...take outside loop
                 socket.receive(received);
 
                 // Get the message opcode from server's packet.
                 meta_FTRapidPacket = new FTRapidPacket(received);
 
-                // If we receive a META, stop the while loop
-                if (meta_FTRapidPacket.getOPCODE() == FTRapidPacket.META)
+                // If we receive a META, stop the while loop. Check if MODE is correct.
+                if (meta_FTRapidPacket.getOPCODE() == FTRapidPacket.META
+                    && meta_FTRapidPacket.getTransferMODE() == this.MODE)
+                {
                     timedOut = false;
-                else
-                    socket.send(RQF);
+                }
             }
             catch (SocketTimeoutException exception) {
                 // If we don't get META, prepare to resend RQF.
@@ -166,33 +178,20 @@ public class ReceiverSNW {
         byte[] fileBytes = collapse(allPackets, LAST_PACKET_DATA_SIZE);
         allPackets.clear();
 
-        // Check mode - file mode requires filepath, logs and guide
-        Object returnObject = null;
-        int MODE = meta_FTRapidPacket.getTransferMODE();
-        switch (MODE){
-            case FTRapidPacket.FILE:
-                try {
-                    new FileOutputStream(this.filepath).write(fileBytes, 0, fileBytes.length);
-                }
-                catch (FileNotFoundException e){
-                    System.out.println(this.filepath + " is not a valid filepath.");
-                }
-                catch (IOException e){
-                    e.printStackTrace();
-                }
-                break;
-            case FTRapidPacket.LOGS:
-                returnObject = new LogsManager(fileBytes);
-                break;
-            case FTRapidPacket.GUIDE:
-                // TODO: what?!
-                break;
-            default:
-                System.out.println("Metadata MODE not found.");
+        // If FILE mode, save file.
+        if(this.MODE == FTRapidPacket.FILE){
+            try {
+                new FileOutputStream(this.filepath).write(fileBytes, 0, fileBytes.length);
+            }
+            catch (FileNotFoundException e){
+                System.out.println(this.filepath + " is not a valid filepath.");
+            }
+            catch (IOException e){
+                e.printStackTrace();
+            }
         }
 
-        // ALL IS OK.
-        return returnObject;
+        return fileBytes.clone();
     }
 
     private byte[] collapse(List<byte[]> packetsSplit, int LAST_PACKET_DATA_SIZE) {
@@ -201,7 +200,6 @@ public class ReceiverSNW {
         int i;
         for(i = 0; i < packetsSplit.size() - 1; ++i)
             System.arraycopy(packetsSplit.get(i), 0, ret, i * FTRapidPacket.DATA_CONTENT_SIZE, FTRapidPacket.DATA_CONTENT_SIZE);
-
 
         int offset = i * FTRapidPacket.DATA_CONTENT_SIZE;
         byte[] buf = packetsSplit.get(i);

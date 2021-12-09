@@ -2,6 +2,7 @@ package Transfers;
 
 import FTRapid.ReceiverSNW;
 import FTRapid.SenderSNW;
+import Logs.Guide;
 import Logs.TransferLogs;
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -20,7 +21,7 @@ public class TransferHandler {
 
     // Used for processTransfers.
     private boolean checkProcessTransfers;
-    private final Queue<TransferLogs> transfersGuide;
+    private final Guide transfersGuide;
     private final String filepath;
     private final DatagramSocket syncSocket;
     private final InetAddress address;
@@ -29,7 +30,7 @@ public class TransferHandler {
 
 
     // Basic Constructor
-    public TransferHandler(int maxThreads, Queue<TransferLogs> transfersGuide, String filepath,
+    public TransferHandler(int maxThreads, Guide transfersGuide, String filepath,
                            DatagramSocket syncSocket, InetAddress ipAddress, int handlerPort, boolean biggerNumber)
     {
         this.threadPool = new ThreadPool(maxThreads);
@@ -163,6 +164,9 @@ public class TransferHandler {
 
     // Main method of this class
     public void processTransfers(){
+        // Get guide.
+        Queue<TransferLogs> guide = this.transfersGuide.getGuide();
+
         // Execute processTransfers only once.
         if(checkProcessTransfers)
             return;
@@ -172,7 +176,7 @@ public class TransferHandler {
         listener.start();
 
         // Saves the size of the guide of transfers and the maximum of threads allowed per connection
-        int size = transfersGuide.size();
+        int size = guide.size();
         int max_files = threadPool.getNMaxFiles();
         System.out.println(max_files);
 
@@ -180,7 +184,7 @@ public class TransferHandler {
         while (size != 0 ){
 
             //  Removes the first transfer in the guide
-            TransferLogs oneTransfer = transfersGuide.poll();
+            TransferLogs oneTransfer = guide.poll();
             assert oneTransfer != null;
 
             // Verifies if I am the one to request the file
