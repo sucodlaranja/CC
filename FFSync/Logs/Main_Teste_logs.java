@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 
 public class Main_Teste_logs {
     public static void main(String[] args) {
+        /*
         try {
             LogsManager l1 = new LogsManager("C:\\Users\\jorge\\OneDrive\\Ambiente de Trabalho\\aa");
             l1.printLogs();
@@ -31,6 +32,17 @@ public class Main_Teste_logs {
             e.printStackTrace();
         }
         System.out.println("end pls");
+
+         */
+        try {
+            LogsManager l1 = new LogsManager("C:\\Users\\jorge\\OneDrive\\Ambiente de Trabalho\\aa");
+            l1.printLogs();
+            LogsManager l2 = new LogsManager(l1.getBytes());
+            l2.printLogs();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
 
     }
 }

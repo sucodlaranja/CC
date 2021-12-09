@@ -1,10 +1,12 @@
 package Logs;
 
-import java.io.IOException;
+import java.io.*;
+import java.net.DatagramSocket;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.*;
+
 
 /**
  * This class represents the logs of a given file,
@@ -25,13 +27,39 @@ public class LogsManager {
 
     // Construct logs from bytes
     public LogsManager(byte[] logBytes){
-        // TODO: construir uma instância de logsmanager a partir de um array de bytes.
-        filepath = "";
-        logs = null;
+        filepath = "Non Defined";
+        logs = new HashMap<>();
+
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(logBytes);
+        DataInputStream dataInputStream = new DataInputStream(byteArrayInputStream);
+
+        try {
+            int size = dataInputStream.readInt();
+            for(int i = 0;i<size;i++) {
+                logs.put(dataInputStream.readUTF(),FileTime.fromMillis( dataInputStream.readLong()));
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    public byte[] getBytes(){
-        // TODO: serializar esta instância para que possamos construir um logsmanager a partir de um byte[] (construtor acima)
+    public byte[] getBytes() {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        DataOutputStream dataOutputStream = new DataOutputStream(outputStream);
+
+        try {
+            dataOutputStream.writeInt(logs.size());
+            for (Map.Entry<String, FileTime> log : logs.entrySet()) {
+                dataOutputStream.writeUTF(log.getKey());
+                dataOutputStream.writeLong(log.getValue().toMillis());
+            }
+            dataOutputStream.flush();
+        } catch (IOException ioException) {
+            ioException.printStackTrace();
+        }
+
+        return outputStream.toByteArray();
     }
 
 
@@ -56,7 +84,7 @@ public class LogsManager {
                 FileTime fl = attr.lastModifiedTime();
 
                 // If the there is no file such in the logs or if it is not up-to-date
-                if (!logs.containsKey(filename) && (fl.compareTo(logs.get(filename)) != 0)) {
+                if (!logs.containsKey(filename) || (fl.compareTo(logs.get(filename)) != 0)) {
                     logs.put(filename, attr.lastModifiedTime());
                     update = true;
                 }
