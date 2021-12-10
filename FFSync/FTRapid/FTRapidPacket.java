@@ -2,10 +2,8 @@ package FTRapid;
 
 import Listener.Listener;
 import Syncs.SyncInfo;
-
 import java.net.DatagramPacket;
 import java.net.InetAddress;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -48,18 +46,21 @@ public class FTRapidPacket {
     private final int sequenceNumber;
     private final String filepath;
     private final String filename;
+    private final byte[] dataBytes;
 
-    public FTRapidPacket(DatagramPacket rcvPacket) {
+    public FTRapidPacket(DatagramPacket rcvPacket, int knownMode) {
         // Local variables
         int local_randomNumber = -1;
         String local_filename = "";
-        int local_transferMODE = -1;
+        int local_transferMODE = knownMode;
         int local_filesize = -1;
         String local_filepath = "";
         int local_sequenceNumber = -1;
+        byte[] local_dataBytes = null;
 
         // Parse data
-        String[] data = ByteBuffer.wrap(rcvPacket.getData()).toString().split("@");
+        String dataStr = new String(rcvPacket.getData(), StandardCharsets.UTF_8);
+        String[] data = dataStr.split("@");
 
         int tempOpcode = Integer.parseInt(data[0]);
         if(tempOpcode == ACK){
@@ -81,7 +82,9 @@ public class FTRapidPacket {
             local_filepath = local_transferMODE == FILE ? data[3] : "";
         }
         else if(tempOpcode == DATA){
-            local_sequenceNumber = Integer.parseInt(data[1]);
+            if(local_transferMODE == FILE)
+                local_sequenceNumber = Integer.parseInt(data[1]);
+            local_dataBytes = dataStr.split("@", 3)[2].getBytes(StandardCharsets.UTF_8);
         }
         else if(tempOpcode == RQF){
             local_filename = data[1];
@@ -101,6 +104,7 @@ public class FTRapidPacket {
         this.sequenceNumber = local_sequenceNumber;
         this.PeerAddress = rcvPacket.getAddress();
         this.key = calculateFTRapidPacketKey(this.filename, this.PeerAddress);
+        this.dataBytes = local_dataBytes;
     }
 
     public static Integer calculateFTRapidPacketKey(String filename, InetAddress address){
@@ -128,19 +132,16 @@ public class FTRapidPacket {
     public int getTransferMODE() {
         return transferMODE;
     }
-
     public int getFilesize() {
         return filesize;
     }
-
     public int getSequenceNumber() {
         return sequenceNumber;
     }
-
-    public String getFilepath() {
-        return filepath;
+    public byte[] getDataBytes() {
+        // Get data of DATA packet.
+        return this.dataBytes;
     }
-
 
     // GET ACK packet: 0@
     public static DatagramPacket getACKPacket(InetAddress ADDRESS, int PORT, int sequenceNumber){
@@ -191,6 +192,7 @@ public class FTRapidPacket {
         byte[] packetB = (RQF + "@" + filename + "@").getBytes(StandardCharsets.UTF_8);
         return new DatagramPacket(packetB, packetB.length, ADDRESS, PORT);
     }
+
 
     @Override
     public int hashCode() {

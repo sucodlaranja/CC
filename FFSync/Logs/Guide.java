@@ -1,12 +1,11 @@
 package Logs;
 
-import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.attribute.FileTime;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 
-// TODO: ENCAPSULATE LOGSMANAGER STRUCTURES...WE DON'T NEED TO KNOW THAT THEY USE MAPS....
 public class Guide {
 
     private final Queue<TransferLogs> guide;
@@ -16,44 +15,28 @@ public class Guide {
     }
 
     public Guide(byte[] guideBytes){
-        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(guideBytes);
-        DataInputStream dataInputStream = new DataInputStream(byteArrayInputStream);
+        this.guide = new LinkedList<>();
 
-        Queue<TransferLogs> localGuide = new LinkedList<>();
-        try {
-            int size = dataInputStream.readInt();
-            for(int i = 0; i < size; i++) {
-                String filename = dataInputStream.readUTF();
-                boolean isSender = dataInputStream.readBoolean();
-                localGuide.add(new TransferLogs(filename, isSender));
-            }
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
-        finally {
-            this.guide = localGuide;
+        // Formato: size@name1@bool1@name2@bool2@ (...)
+        String logsStr = new String(guideBytes, StandardCharsets.UTF_8);
+        String[] logsStrArr = logsStr.split("@");
+        int size = Integer.parseInt(logsStrArr[0]);
+
+        for(int i = 1; i < size * 2; i+=2){
+            String name = logsStrArr[i];
+            boolean isSender = Boolean.parseBoolean(logsStrArr[i+1]);
+            this.guide.add(new TransferLogs(name, isSender));
         }
     }
 
     // Serialize this class.
     public byte[] getBytes(){
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        DataOutputStream dataOutputStream = new DataOutputStream(outputStream);
+        StringBuilder sb = new StringBuilder();
+        sb.append(this.guide.size()).append("@");
+        for (TransferLogs transferLogs : this.guide)
+            sb.append(transferLogs.getFileName()).append("@").append(transferLogs.isSender()).append("@");
 
-        try {
-            dataOutputStream.writeInt(this.guide.size());
-            for (TransferLogs transferLogs : this.guide) {
-                dataOutputStream.writeUTF(transferLogs.getFileName());
-                dataOutputStream.writeBoolean(transferLogs.isSenderOrReceiver());
-            }
-            dataOutputStream.flush();
-        }
-        catch (IOException ioException) {
-            ioException.printStackTrace();
-        }
-
-        return outputStream.toByteArray();
+        return sb.toString().getBytes(StandardCharsets.UTF_8);
     }
 
     // Compare two LogsManager and generate guide.
@@ -84,4 +67,5 @@ public class Guide {
     public Queue<TransferLogs> getGuide() {
         return guide;
     }
+
 }

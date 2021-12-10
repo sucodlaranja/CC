@@ -1,6 +1,7 @@
 package Logs;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
@@ -30,40 +31,26 @@ public class LogsManager {
         filepath = "Non Defined";
         logs = new HashMap<>();
 
-        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(logBytes);
-        DataInputStream dataInputStream = new DataInputStream(byteArrayInputStream);
+        // Formato: size@key1@value1@key2@value2@ (...)
+        String logsStr = new String(logBytes, StandardCharsets.UTF_8);
 
-        try {
-            int size = dataInputStream.readInt();
-            for(int i = 0; i < size; i++) {
-                String name = dataInputStream.readUTF();
-                FileTime fileTime = FileTime.fromMillis(dataInputStream.readLong());
-                logs.put(name, fileTime);
-            }
-        }
-        catch (IOException e) {
-            e.printStackTrace();
+        String[] logsStrArr = logsStr.split("@");
+        int size = Integer.parseInt(logsStrArr[0]);
+
+        for(int i = 1; i < size * 2; i+=2){
+            String key = logsStrArr[i];
+            FileTime value = FileTime.fromMillis(Long.parseLong(logsStrArr[i+1]));
+            logs.put(key, value);
         }
     }
 
     // Serialize this class...
     public byte[] getBytes() {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        DataOutputStream dataOutputStream = new DataOutputStream(outputStream);
-
-        try {
-            dataOutputStream.writeInt(logs.size());
-            for (Map.Entry<String, FileTime> log : logs.entrySet()) {
-                dataOutputStream.writeUTF(log.getKey());
-                dataOutputStream.writeLong(log.getValue().toMillis());
-            }
-            dataOutputStream.flush();
-        }
-        catch (IOException ioException) {
-            ioException.printStackTrace();
-        }
-
-        return outputStream.toByteArray();
+        StringBuilder sb = new StringBuilder();
+        sb.append(logs.size()).append("@");
+        for (Map.Entry<String, FileTime> log : logs.entrySet())
+            sb.append(log.getKey()).append("@").append(log.getValue().toMillis()).append("@");
+        return sb.toString().getBytes(StandardCharsets.UTF_8);
     }
 
 
@@ -107,16 +94,13 @@ public class LogsManager {
         return new Guide(this.getLogs(), otherLogs);
     }
 
-
-
-    // TODO DEBUG REMOVE
-    public void printTransfers(Queue<TransferLogs> listOfTransfers){
-        for (TransferLogs t: listOfTransfers){
-            System.out.println( t.getFileName() + " " + t.isSenderOrReceiver());
-        }
+    // TODO: REMOVE LATER
+    public String toString(){
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, FileTime> log : logs.entrySet())
+            sb.append(log.getKey()).append("@").append(log.getValue().toMillis()).append("@");
+        return sb.toString();
     }
-    public void printLogs(){
-        logs.forEach((key, value) -> System.out.println(key + " -> " + value.toString()));
-    }
+
 }
 

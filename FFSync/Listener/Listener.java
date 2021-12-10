@@ -21,7 +21,7 @@ public class Listener implements Runnable{
     private final DatagramSocket datagramSocket;
 
     public Listener() throws SocketException {
-        this.datagramSocket = new DatagramSocket();
+        this.datagramSocket = new DatagramSocket(LISTENER_PORT);
         if(rcvFTRapidPackets == null)
             rcvFTRapidPackets = new HashSet<>();
     }
@@ -64,18 +64,20 @@ public class Listener implements Runnable{
             }
         }
 
+        // TODO: In case there are no pending requests.
+        if(return_value.isEmpty())
+            return_value.add(0, 0);
+
         return return_value;
     }
 
     @Override
     public void run() {
         /*
-         * Listener.Listener goal: listen to UDP and TCP requests.
-         * TCP requests: HTTP commands to retrieve client information.
+         * Listener.Listener goal: listen to UDP requests.
          * UDP requests: Manage/Start FTRapid sync's.
          *
          * */
-
 
         // Receive (in UDP) requests and save them (not keeping repeated requests).
         while(!this.datagramSocket.isClosed()){
@@ -83,16 +85,23 @@ public class Listener implements Runnable{
             DatagramPacket rcvPacket = new DatagramPacket(rcvPacketBuf, rcvPacketBuf.length);
             try {
                 this.datagramSocket.receive(rcvPacket);
-            } catch (IOException e) {
+            }
+            catch (SocketException e){
+                if(rcvFTRapidPackets != null)
+                    rcvFTRapidPackets.clear();
+            }
+            catch (IOException e) {
                 System.out.println("Failed to receive datagram packet in Listener.Listener.");
                 e.printStackTrace();
             }
 
             // puts packet into set - keep repeated packets out
-            rcvFTRapidPackets.add(new FTRapidPacket(rcvPacket));
+            if(!this.datagramSocket.isClosed())
+                rcvFTRapidPackets.add(new FTRapidPacket(rcvPacket, FTRapidPacket.ERROR));
         }
 
-        System.out.println("Listener.Listener is offline.");
+        // Termination message
+        System.err.println("Listener is offline.");
     }
 
     // TODO: CONCURRENCY?

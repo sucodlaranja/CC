@@ -2,7 +2,6 @@ package FTRapid;
 
 import java.io.IOException;
 import java.net.*;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -104,7 +103,7 @@ public class SenderSNW {
                 socket.receive(received);
 
                 // Build FTRapidPacket.
-                FTRapidPacket ftRapidPacket = new FTRapidPacket(received);
+                FTRapidPacket ftRapidPacket = new FTRapidPacket(received, this.MODE);
 
                 // If we receive an ack, stop the while loop
                 if (ftRapidPacket.getOPCODE() == FTRapidPacket.ACK && ftRapidPacket.getSequenceNumber() == 1) {
@@ -142,7 +141,7 @@ public class SenderSNW {
                     socket.receive(received);
 
                     // Build FTRapidPacket.
-                    FTRapidPacket ftRapidPacket = new FTRapidPacket(received);
+                    FTRapidPacket ftRapidPacket = new FTRapidPacket(received, this.MODE);
 
                     // If we receive an ack, stop the while loop
                     if (ftRapidPacket.getOPCODE() == FTRapidPacket.ACK && ftRapidPacket.getSequenceNumber() == seqNum)
@@ -165,8 +164,9 @@ public class SenderSNW {
             seqNum = seqNum == 0? 1 : 0;
         }
 
-        // Close this socket - not going to be used again.
-        socket.close();
+        // Close this socket only if in FILE mode - not going to be used again.
+        if(this.MODE == FTRapidPacket.FILE)
+            socket.close();
 
         // ALL IS OK.
         return 0; // TODO: TEMPO TRANSFER + BITS/S - maybe with a record.

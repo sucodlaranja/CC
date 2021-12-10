@@ -35,10 +35,10 @@ public class Main_Teste_logs {
 
          */
         try {
-            LogsManager l1 = new LogsManager("C:\\Users\\jorge\\OneDrive\\Ambiente de Trabalho\\aa");
-            l1.printLogs();
+            LogsManager l1 = new LogsManager("/home/rubensas/UM");
+            System.out.println(l1);
             LogsManager l2 = new LogsManager(l1.getBytes());
-            l2.printLogs();
+            System.out.println(l2);
         }
         catch (IOException e) {
             e.printStackTrace();

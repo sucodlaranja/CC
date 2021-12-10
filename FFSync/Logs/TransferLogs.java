@@ -9,7 +9,7 @@ public record TransferLogs(String fileName, boolean senderOrReceiver) {
         return fileName;
     }
 
-    public boolean isSenderOrReceiver() {
+    public boolean isSender() {
         return senderOrReceiver;
     }
 

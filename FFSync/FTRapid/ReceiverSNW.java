@@ -61,10 +61,14 @@ public class ReceiverSNW {
     public byte[] requestAndReceive() {
 
         // Create RQF (request file) packet. Only useful if MODE=FILE. PORT corresponds to listener port.
-        DatagramPacket RQF = FTRapidPacket.getRQFPacket(this.ADDRESS, this.PORT, this.filename);
+        DatagramPacket RQF = null;
+        if(this.MODE == FTRapidPacket.FILE)
+            RQF = FTRapidPacket.getRQFPacket(this.ADDRESS, this.PORT, this.filename);
 
         // Create ACK packet. Useful if MODE=LOGS. We need to aknowledge INIT_ACK packet and wait for META.
-        DatagramPacket ACK_CONTROL = FTRapidPacket.getACKPacket(this.ADDRESS, this.PORT, FTRapidPacket.CONTROL_SEQ_NUM);
+        DatagramPacket ACK_CONTROL = null;
+        if(this.MODE == FTRapidPacket.LOGS)
+            ACK_CONTROL = FTRapidPacket.getACKPacket(this.ADDRESS, this.PORT, FTRapidPacket.CONTROL_SEQ_NUM);
 
         // Send RQF packet and wait for approval a.k.a. META packet.
         // Save META packet.
@@ -83,13 +87,15 @@ public class ReceiverSNW {
                 // Create a byte array to receive META.
                 byte[] receiveData = new byte[FTRapidPacket.BUFFER_SIZE];
 
+
                 // Receive the server's packet
                 DatagramPacket received = new DatagramPacket(receiveData, receiveData.length);
                 socket.setSoTimeout(5000); // TODO: TIMEOUT...take outside loop
                 socket.receive(received);
 
                 // Get the message opcode from server's packet.
-                meta_FTRapidPacket = new FTRapidPacket(received);
+                // MODE=ERROR because we will find out wich mode the presumed META packet has.
+                meta_FTRapidPacket = new FTRapidPacket(received, FTRapidPacket.ERROR);
 
                 // If we receive a META, stop the while loop. Check if MODE is correct.
                 if (meta_FTRapidPacket.getOPCODE() == FTRapidPacket.META
@@ -102,7 +108,12 @@ public class ReceiverSNW {
                 // If we don't get META, prepare to resend RQF.
                 System.out.println("Server not responding to RQF.");
             } catch (IOException e) {
-                e.printStackTrace();
+                if(this.socket.isClosed()) {
+                    System.out.println("Receive Socket closed prematurely.");
+                    return null;
+                }
+                else
+                    e.printStackTrace();
             }
         }
 
@@ -138,11 +149,11 @@ public class ReceiverSNW {
                     this.socket.receive(receivedPacket);
 
                     // Check and save packet.
-                    FTRapidPacket ftRapidPacket = new FTRapidPacket(receivedPacket);
+                    FTRapidPacket ftRapidPacket = new FTRapidPacket(receivedPacket, this.MODE);
                     if(ftRapidPacket.getOPCODE() == FTRapidPacket.DATA
                             && ftRapidPacket.getSequenceNumber() != prevSeqNum)
                     {
-                        allPackets.add(index, receivedPacket.getData().clone());
+                        allPackets.add(index, ftRapidPacket.getDataBytes().clone());
                         timedOut = false;
                     }
                 }
@@ -167,12 +178,6 @@ public class ReceiverSNW {
         catch (IOException e){
             e.printStackTrace();
         }
-
-        // Trim and update the last packet.
-        byte[] lastPacket = allPackets.get(allPackets.size() - 1);
-        byte[] trimmedLastPacket = new byte[LAST_PACKET_DATA_SIZE];
-        System.arraycopy(lastPacket, 0, trimmedLastPacket, 0, LAST_PACKET_DATA_SIZE);
-        allPackets.add(allPackets.size() - 1, trimmedLastPacket);
 
         // Collapse allPackets into byte[].
         byte[] fileBytes = collapse(allPackets, LAST_PACKET_DATA_SIZE);
@@ -208,5 +213,6 @@ public class ReceiverSNW {
 
         return ret;
     }
+
 }
 

@@ -41,8 +41,6 @@ public class Syncs {
      * Terminate one specific or all syncs.
      * */
     public void terminate(String id) {
-        // TODO: Is it enough to close socket?
-
         if (!id.equals("all")){
             Integer key = Integer.parseInt(id);
             if(this.syncs.containsKey(key)){
@@ -59,7 +57,6 @@ public class Syncs {
             this.syncs.values().forEach(SyncHandler::closeSocket);
             this.syncs.clear();
         }
-
     }
 
     @Override

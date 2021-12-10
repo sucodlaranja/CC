@@ -1,9 +1,20 @@
+import HTTP.HTTPServer;
 import Listener.Listener;
 import UI.Interpreter;
 
-import java.net.SocketException;
+import javax.xml.crypto.Data;
+import java.io.IOException;
+import java.net.*;
+import java.nio.charset.StandardCharsets;
 
 public class Main {
+
+    /*
+    * Comandos
+    *   FFSync /home/rubensas/UM localhost
+    *
+    *
+    * */
 
     public static void main(String[] args) {
         // Parsing user input: "FFSync filepath ip"
@@ -24,9 +35,23 @@ public class Main {
         }
 
         // Check if listener is not null, create thread and start thread.
-        assert l != null : "Invalid Listener.Listener.";
+        assert l != null : "Invalid Listener.";
         Thread listener = new Thread(l);
         listener.start();
+
+        // Create HTTP server.
+        HTTPServer httpServer = null;
+        try{
+            httpServer = new HTTPServer(Listener.LISTENER_PORT);
+        }
+        catch (IOException e){
+            e.printStackTrace();
+        }
+
+        // Start HTTP server.
+        assert httpServer != null : "Invalid HTTP server.";
+        Thread httpThread = new Thread(httpServer);
+        httpThread.start();
 
         // Create and run UI.Interpreter thread.
         Thread interpreter = new Thread(new Interpreter(filepath, ip));
@@ -35,17 +60,18 @@ public class Main {
         // Wait for UI.Interpreter to terminate.
         try {
             interpreter.join();
+            System.err.println("Interpreter terminated.");
         }
         catch (InterruptedException e){
             System.out.println("Failed to join interpreter thread.");
             e.printStackTrace();
         }
 
-        // TODO: IS IT ENOUGH?
-        // Close Listener.Listener - can we do it here?
+        // Close Listener UDP and HTTP server.
         l.closeSocket();
+        httpServer.closeServer();
 
-        System.out.println("Bye");
+        System.err.println("Main thread terminated.");
     }
 
 }

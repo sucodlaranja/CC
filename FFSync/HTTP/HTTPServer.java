@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,35 +31,34 @@ public class HTTPServer implements Runnable {
         logs.put("teste",null);
         logs.put("teste2",null);
 
-        System.err.println("Server is listening on port " + port + ".");
         try {
-        while(true) {
-            
-            Socket clientSocket = serverSocket.accept();
-            System.err.println("Client Connected");
-            
-            BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            String s;
-            String [] newString = null;
-                while( (s = in.readLine()) != null) {
+            while(!serverSocket.isClosed()) {
+
+                Socket clientSocket = serverSocket.accept();
+                System.err.println("Client Connected");
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                String s;
+                String[] newString = null;
+                while ((s = in.readLine()) != null) {
                     newString = s.split(" ");
-                
-                    if(newString[0] != null && newString[0].equals("GET")) {
+
+                    if (newString[0] != null && newString[0].equals("GET")) {
                         System.out.println(newString[1]);
                         break;
                     }
-                    if(s.isEmpty()) {break;}
+                    if (s.isEmpty()) {
+                        break;
+                    }
                 }
-                
-            
 
                 OutputStream out = clientSocket.getOutputStream();
                 out.write("HTTP/1.1 200 OK\r\n".getBytes());
                 out.write("\r\n".getBytes());
-                
+
 
                 // aqui deve estar um handler de getters
-                getHandler(newString[1],logs,out);
+                getHandler(newString[1], logs, out);
                 out.write("\r\n\r\n".getBytes());
                 out.flush();
                 System.err.println("Client connection closed!");
@@ -66,12 +66,17 @@ public class HTTPServer implements Runnable {
                 in.close();
             }
         }
+        catch (SocketException e){
+            logs.clear(); // TODO: fazer qualquer coisa só pq sim...apenas deve haver 1 msg de terminação
+        }
+        catch(IOException e) {
+            System.out.println("Something's wrong, I can feel it");
+        }
 
-            catch(IOException e) {
-                System.out.println("Something's wrong, I can feel it");
-            }
-        
+        // Termination message.
+        System.err.println("HTTP server terminated.");
     }
+
     /**
      * TODO colocar isto nas cenas dos logsmanagers out.write(("<a href=\"http://localhost:8081/\">back</a>").getBytes());
      * Este metodo vai receber e "resolver" o pedido feito ao nosso server http
@@ -109,13 +114,12 @@ public class HTTPServer implements Runnable {
         }
     }
 
-    // TODO apagar isto depois, e so para testes.
-    public static void main(String[] args) {
-        try {
-            Thread server = new Thread(new HTTPServer(8081));
-            server.start();
-        } catch (IOException e) {
-            
+    // TODO: CONCURRENCY ???
+    public void closeServer(){
+        try{
+            this.serverSocket.close();
+        }
+        catch (IOException e){
             e.printStackTrace();
         }
     }

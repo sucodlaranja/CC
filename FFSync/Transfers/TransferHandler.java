@@ -188,7 +188,7 @@ public class TransferHandler {
             assert oneTransfer != null;
 
             // Verifies if I am the one to request the file
-            if (doIRequest(biggerNumber,oneTransfer.isSenderOrReceiver())) {
+            if (doIRequest(biggerNumber,oneTransfer.isSender())) {
                 // Starts the thread to request the file
                 Thread t = new Thread(new ReceiveFile(handlerPort, address, filepath ,oneTransfer.getFileName()));
                 t.start();
