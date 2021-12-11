@@ -62,7 +62,14 @@ public class FTRapidPacket {
         String dataStr = new String(rcvPacket.getData(), StandardCharsets.UTF_8);
         String[] data = dataStr.split("@");
 
-        int tempOpcode = Integer.parseInt(data[0]);
+        int tempOpcode;
+        try{
+            tempOpcode = Integer.parseInt(data[0]);
+        }
+        catch (NumberFormatException e){
+            tempOpcode = INVALID;
+        }
+
         if(tempOpcode == ACK){
             local_sequenceNumber = Integer.parseInt(data[1]);
         }

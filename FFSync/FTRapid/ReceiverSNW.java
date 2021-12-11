@@ -1,10 +1,13 @@
 package FTRapid;
 
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -186,10 +189,18 @@ public class ReceiverSNW {
         // If FILE mode, save file.
         if(this.MODE == FTRapidPacket.FILE){
             try {
+                // Take name of the file out of filepath. Filepath is the full path of the file.
+                StringBuilder finalDirectoryPath = new StringBuilder("/");
+                String[] splitFilepath = this.filepath.split("/");
+                for(int i = 0; i < splitFilepath.length - 1; ++i)
+                    finalDirectoryPath.append(splitFilepath[i]).append("/");
+
+                Files.createDirectories(Paths.get(finalDirectoryPath.toString()));
+
                 new FileOutputStream(this.filepath).write(fileBytes, 0, fileBytes.length);
             }
             catch (FileNotFoundException e){
-                System.out.println(this.filepath + " is not a valid filepath.");
+                System.out.println("Receiver: " + this.filepath + " is not a valid filepath.");
             }
             catch (IOException e){
                 e.printStackTrace();

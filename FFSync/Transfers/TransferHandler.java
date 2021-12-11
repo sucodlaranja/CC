@@ -57,21 +57,21 @@ public class TransferHandler {
             this.filepath = filepath;
         }
 
-        public FTRapidPacket listen(DatagramSocket syncSocket){
+        public FTRapidPacket listen(){
 
             // Create a byte array to receive request.
-            byte[] receiveData = new byte[8];
+            byte[] receiveData = new byte[FTRapidPacket.BUFFER_SIZE];
 
             // Receive the packet
             DatagramPacket received = new DatagramPacket(receiveData, receiveData.length);
             try {
-                syncSocket.setSoTimeout(1000);
+                syncSocket.setSoTimeout(5000);
                 syncSocket.receive(received);
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
-            return new FTRapidPacket(received,-1);
+            return new FTRapidPacket(received,FTRapidPacket.INVALID);
         }
 
         @Override
@@ -80,22 +80,22 @@ public class TransferHandler {
             filesWaitingRequestPool.sleepIfEmpty(); // sleeps if there is no request to ear (set is empty)
 
             // ends when finish is true and the previous iteration did not give out a filename
-            while (!filesWaitingRequestPool.getFinish() || !filename.equals("")){ // ends when
+            while (!filesWaitingRequestPool.getFinish() || !filename.equals("")){
                 filesWaitingRequestPool.sleepIfEmpty(); // sleeps if there is no request to ear (set is empty)
 
-                FTRapidPacket packet = listen(syncSocket);
+                FTRapidPacket packet = listen();
                 int communicateToPort = packet.getPort();
                 InetAddress ipAddress = packet.getPeerAddress();
                 filename = packet.getFilename();
 
                 // if the filename we read is on the set we create a thread to send it to the other person.
                 if (filesWaitingRequestPool.removeUpcomingFiles(filename)){
-                    Thread t = new Thread(new SendFile(communicateToPort,ipAddress,filepath + filename));
+                    String completeFilepath = getCompleteFilepath(filepath, filename);
+                    Thread t = new Thread(new SendFile(communicateToPort, ipAddress, completeFilepath));
                     t.start();
                 }
 
             }
-            System.out.println("ACABEI DE LER MEUS PUTOS");
         }
     }
 
@@ -105,7 +105,7 @@ public class TransferHandler {
 
         private final int sendToPort;
         private final InetAddress sendToIpAddress;
-        private final String filepath;
+        private final String filepath; // this is the complete filepath
 
         public SendFile(int sendToPort,InetAddress sendToIpAddress,String filepath){
             this.sendToPort = sendToPort;
@@ -141,11 +141,8 @@ public class TransferHandler {
 
         @Override
         public void run() {
-            System.out.println("Transfering file: " + filename + ".");
-            ReceiverSNW receiverSNW = new ReceiverSNW(this.address, this.port, this.filepath, this.filename);
+            ReceiverSNW receiverSNW = new ReceiverSNW(this.address, this.port, getCompleteFilepath(filepath, filename), this.filename);
             receiverSNW.requestAndReceive();
-            System.out.println(" Finished.");
-
             threadPool.inc_dec_nMaxFiles(1);
         }
     }
@@ -157,6 +154,11 @@ public class TransferHandler {
         else return !isSenderOrReceiver;
     }
 
+    // Creates a correct filepath (in terms of format).
+    public String getCompleteFilepath(String filepath, String filename){
+        return filepath.charAt(filepath.length() - 1) == '/' ? filepath + filename : filepath + "/" + filename;
+    }
+
     // Main method of this class
     public void processTransfers(){
         // Get guide.
@@ -166,14 +168,13 @@ public class TransferHandler {
         if(checkProcessTransfers)
             return;
 
-        // Creates a listener to ear requests
+        // Creates a listener to listen to requests.
         Thread listener = new Thread(new Listener(syncSocket, filepath));
         listener.start();
 
         // Saves the size of the guide of transfers and the maximum of threads allowed per connection
         int size = guide.size();
         int max_files = threadPool.getNMaxFiles();
-        System.out.println(max_files);
 
         // ends when there is no more files in the guide
         while (size != 0 ){

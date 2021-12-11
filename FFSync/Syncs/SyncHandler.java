@@ -89,7 +89,7 @@ public class SyncHandler implements Runnable{
                 DatagramPacket ack_packet = new DatagramPacket(ack_buffer, ack_buffer.length);
 
                 // Set timeout to receive ACK packet. ACK has to arrive while we wait...
-                this.syncSocket.setSoTimeout(3000);
+                this.syncSocket.setSoTimeout(4000);
 
                 // Wait for ack (if timeout is reached, restart loop).
                 this.syncSocket.receive(ack_packet);

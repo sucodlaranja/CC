@@ -59,7 +59,6 @@ public class ThreadPool{
         lock.lock();
         try {
             nMaxThreads += incOrDec;
-            System.out.println("nMaxFiles -> " + (nMaxThreads - incOrDec) + " -> " + nMaxThreads);
 
             //If the number of max threads increases we need to try to wake up the handler,
             // because there is space for more threads
