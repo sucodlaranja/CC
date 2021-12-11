@@ -1,5 +1,6 @@
 package Transfers;
 
+import FTRapid.FTRapidPacket;
 import FTRapid.ReceiverSNW;
 import FTRapid.SenderSNW;
 import Logs.Guide;
@@ -48,19 +49,15 @@ public class TransferHandler {
     private class Listener implements Runnable{
 
         private final DatagramSocket syncSocket; // onde o listener vai ouvir
-        private final InetAddress ipAddress;
         private final String filepath; // Add to filename to get the full path
 
         // Basic Constructor
-        public Listener(DatagramSocket syncSocket,InetAddress ipAddress,String filepath){
+        public Listener(DatagramSocket syncSocket,String filepath){
             this.syncSocket = syncSocket;
-            this.ipAddress = ipAddress;
             this.filepath = filepath;
         }
 
-        // TODO magia do ruben para por este menino a ouvir em udp
-        public String listen(DatagramSocket syncSocket){
-            String filename = "";
+        public FTRapidPacket listen(DatagramSocket syncSocket){
 
             // Create a byte array to receive request.
             byte[] receiveData = new byte[8];
@@ -74,23 +71,22 @@ public class TransferHandler {
                 e.printStackTrace();
             }
 
-            return filename;
+            return new FTRapidPacket(received,-1);
         }
 
         @Override
         public void run() {
             String filename = "";
-
             filesWaitingRequestPool.sleepIfEmpty(); // sleeps if there is no request to ear (set is empty)
 
             // ends when finish is true and the previous iteration did not give out a filename
             while (!filesWaitingRequestPool.getFinish() || !filename.equals("")){ // ends when
                 filesWaitingRequestPool.sleepIfEmpty(); // sleeps if there is no request to ear (set is empty)
 
-                // TODO Integrar a magia do ruben
-                //listen(syncSocket);
-                int communicateToPort = 1;
-                filename = listen(syncSocket);
+                FTRapidPacket packet = listen(syncSocket);
+                int communicateToPort = packet.getPort();
+                InetAddress ipAddress = packet.getPeerAddress();
+                filename = packet.getFilename();
 
                 // if the filename we read is on the set we create a thread to send it to the other person.
                 if (filesWaitingRequestPool.removeUpcomingFiles(filename)){
@@ -151,7 +147,6 @@ public class TransferHandler {
             System.out.println(" Finished.");
 
             threadPool.inc_dec_nMaxFiles(1);
-            //condition.signalAll();
         }
     }
 
@@ -172,7 +167,7 @@ public class TransferHandler {
             return;
 
         // Creates a listener to ear requests
-        Thread listener = new Thread(new Listener(syncSocket, address, filepath));
+        Thread listener = new Thread(new Listener(syncSocket, filepath));
         listener.start();
 
         // Saves the size of the guide of transfers and the maximum of threads allowed per connection
@@ -203,14 +198,17 @@ public class TransferHandler {
             }
 
 
-        // Waits for all threads to finish
-        threadPool.waitForAllThreadsToFinish(max_files);
+        // TODO :ESPERAR ALGUM TEMPO ???
+
         filesWaitingRequestPool.setFinish();
         try {
             listener.join();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
+        // Waits for all threads to finish
+        threadPool.waitForAllThreadsToFinish(max_files - filesWaitingRequestPool.size());
 
         this.checkProcessTransfers = true;
     }
