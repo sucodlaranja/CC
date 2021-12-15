@@ -29,10 +29,12 @@ public class TransferHandler {
     private final int handlerPort;
     private final boolean biggerNumber;
 
+    private final byte[] secret;
+
 
     // Basic Constructor
     public TransferHandler(int maxThreads, Guide transfersGuide, String filepath,
-                           DatagramSocket syncSocket, InetAddress ipAddress, int handlerPort, boolean biggerNumber)
+                           DatagramSocket syncSocket, InetAddress ipAddress, int handlerPort, boolean biggerNumber, byte[] secret)
     {
         this.threadPool = new ThreadPool(maxThreads);
         this.filesWaitingRequestPool = new FilesWaitingRequestPool();
@@ -43,6 +45,7 @@ public class TransferHandler {
         this.address = ipAddress;
         this.handlerPort = handlerPort;
         this.biggerNumber = biggerNumber;
+        this.secret = secret;
     }
 
     // Threads that listen for requests
@@ -116,7 +119,7 @@ public class TransferHandler {
         @Override
         public void run() {
             // Send file.
-            SenderSNW senderSNW = new SenderSNW(sendToIpAddress, sendToPort, filepath);
+            SenderSNW senderSNW = new SenderSNW(sendToIpAddress, sendToPort, filepath, secret);
             senderSNW.send();
 
             threadPool.inc_dec_nMaxFiles(1);
@@ -141,7 +144,7 @@ public class TransferHandler {
 
         @Override
         public void run() {
-            ReceiverSNW receiverSNW = new ReceiverSNW(this.address, this.port, getCompleteFilepath(filepath, filename), this.filename);
+            ReceiverSNW receiverSNW = new ReceiverSNW(this.address, this.port, getCompleteFilepath(filepath, filename), this.filename, secret);
             receiverSNW.requestAndReceive();
             threadPool.inc_dec_nMaxFiles(1);
         }
