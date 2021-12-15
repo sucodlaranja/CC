@@ -6,7 +6,7 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.*;
-
+import java.util.stream.Collectors;
 
 
 /**
@@ -58,6 +58,7 @@ public class LogsManager {
     public Map<String, FileTime> getLogs(){
         return new HashMap<>(logs);
     }
+    public Set<String> getFileNames() { return new HashSet<>(logs.keySet()); }
 
     // Updates all logs
     private boolean updateFileLogsAux(Path folder, String prePath) throws IOException {

@@ -5,19 +5,24 @@ import java.nio.file.attribute.FileTime;
 /**
  * Represents entry of a transfer.
  */
-public record FileTransferHistory(String fileName, FileTime lastUpdated, int timeOfTransfer, int bitsPSeg) {
+public class FileTransferHistory{
+    private FileTime lastUpdated;
+    private int timeOfTransfer;
+    private int bitsPSeg;
 
-    public String getFileName() {
-        return fileName;
+    public FileTransferHistory(FileTime lastUpdated, int timeOfTransfer, int bitsPSeg) {
+        this.lastUpdated = lastUpdated;
+        this.timeOfTransfer = timeOfTransfer;
+        this.bitsPSeg = bitsPSeg;
     }
 
-    public FileTime lastUpdated() { return lastUpdated; }
+    public void setLastUpdated(FileTime lastUpdated ) { this.lastUpdated = lastUpdated; }
 
-    public int timeOfTransfer() { return timeOfTransfer; }
+    public void setTimeOfTransfer(int timeOfTransfer ) { this.timeOfTransfer = timeOfTransfer; }
 
-    public int bitsPSeg() { return bitsPSeg; }
+    public void setBitsPSeg(int bitsPSeg ) { this.bitsPSeg = bitsPSeg; }
 
-    public String toHTML(){
+    public String toHTML(String filename){
         // TODO : JAO FAZER
         return "";
     }
