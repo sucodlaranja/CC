@@ -75,8 +75,7 @@ public class HTTPServer implements Runnable {
     }
 
     /**
-     * TODO colocar isto nas cenas dos logsmanagers out.write(("<a href=\"http://localhost:8081/\">back</a>").getBytes());
-     * Este metodo vai receber e "resolver" o pedido feito ao nosso server http
+     * TODO : Modificar isto para funcionar com os novos fileTransfers quando tiver material de teste
      */
     public void getHandler(String argument,Map<String,LogsManager> syncs,OutputStream out) throws IOException {
         String [] splitArgument = argument.split("/");
@@ -89,6 +88,17 @@ public class HTTPServer implements Runnable {
                 // TODO tem de ser direcionado para um metodo que mostra os logsmanagers 
                 if(splitArgument[1].equals(entry.getKey())) {
                     out.write(("<b><h1>"+ entry.getKey() + "</h1></b>").getBytes());
+                    out.write(("<h3>nome do file</h3>").getBytes());
+                    out.write(("<p>&nbsp&nbsp&nbsp<i>"+ "Last Updated: </i>").getBytes());
+                    out.write(("11/11/2922" + "</p>").getBytes());
+                    out.write(("<p>&nbsp&nbsp&nbsp<i>"+ "Time of Transfer:20s </i>").getBytes());
+                    out.write(("<p>&nbsp&nbsp&nbsp<i>"+ "Bits Per Second: 32</i>").getBytes());
+
+                    out.write(("<h3>nome do file2</h3>").getBytes());
+                    out.write(("<p>&nbsp&nbsp&nbsp<i>"+ "Last Updated: </i>").getBytes());
+                    out.write(("11/11/2922" + "</p>").getBytes());
+                    out.write(("<p>&nbsp&nbsp&nbsp<i>"+ "Time of Transfer: </i>").getBytes());
+                    out.write(("<p>&nbsp&nbsp&nbsp<i>"+ "Bits Per Second: </i>").getBytes());
                     break;
                 }
             }
@@ -101,7 +111,7 @@ public class HTTPServer implements Runnable {
     
 
     /**
-     * Para fazer o menu principal, ns bem como é que vao organizar isto mas para motivos de simplicidade
+     *TODO: modificar isto para a nova maneira
      * @throws IOException
      */
     public void mainMenu(Map<String,LogsManager> syncs,OutputStream out) throws IOException {
@@ -121,4 +131,3 @@ public class HTTPServer implements Runnable {
         }
     }
 }
-

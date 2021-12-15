@@ -1,10 +1,7 @@
 package HistoryRecorder;
 
-import java.nio.file.attribute.FileTime;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 public class TransferHistory {
 
@@ -28,8 +25,15 @@ public class TransferHistory {
     public saveTransferHistory(String filepath){
 
     }
-
-    public String toHTML(){}
     */
+
+    public String toHTML(){
+        StringBuilder html = new StringBuilder();
+        for(HashMap.Entry<String,FileTransferHistory> entry: files.entrySet()) {
+            html.append(entry.getValue().toHTML(entry.getKey()));
+        }
+        return html.toString();
+    }
+    
 
 }
