@@ -1,4 +1,4 @@
-package Logs;
+package HistoryRecorder;
 
 import java.nio.file.attribute.FileTime;
 
