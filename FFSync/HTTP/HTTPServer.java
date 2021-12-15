@@ -12,13 +12,10 @@ import java.util.Map;
 
 import Logs.LogsManager;
 
-/**Isto e so a base do server 
- * meio burro so manda a cena em html 
- *  */ 
 public class HTTPServer implements Runnable {
 
-    ServerSocket serverSocket;
-    int port;
+    private ServerSocket serverSocket;
+    private int port;
 
 
     public HTTPServer(int port) throws IOException {
@@ -30,13 +27,16 @@ public class HTTPServer implements Runnable {
         Map<String,LogsManager> logs = new HashMap<>();
         logs.put("teste",null);
         logs.put("teste2",null);
+        
 
         try {
             while(!serverSocket.isClosed()) {
 
                 Socket clientSocket = serverSocket.accept();
+            
                 System.err.println("Client Connected");
 
+                
                 BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 String s;
                 String[] newString = null;
@@ -44,10 +44,9 @@ public class HTTPServer implements Runnable {
                     newString = s.split(" ");
 
                     if (newString[0] != null && newString[0].equals("GET")) {
-                        System.out.println(newString[1]);
                         break;
                     }
-                    if (s.isEmpty()) {
+                    else if (s.isEmpty()) {
                         break;
                     }
                 }
@@ -55,10 +54,7 @@ public class HTTPServer implements Runnable {
                 OutputStream out = clientSocket.getOutputStream();
                 out.write("HTTP/1.1 200 OK\r\n".getBytes());
                 out.write("\r\n".getBytes());
-
-
-                // aqui deve estar um handler de getters
-                getHandler(newString[1], logs, out);
+                getHandler(newString[1], logs, out);                                        //handler
                 out.write("\r\n\r\n".getBytes());
                 out.flush();
                 System.err.println("Client connection closed!");
@@ -67,6 +63,7 @@ public class HTTPServer implements Runnable {
             }
         }
         catch (SocketException e){
+            
             logs.clear(); // TODO: fazer qualquer coisa só pq sim...apenas deve haver 1 msg de terminação
         }
         catch(IOException e) {
