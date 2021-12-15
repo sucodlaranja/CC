@@ -7,16 +7,19 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashSet;
+import java.util.Set;
 
-import Logs.LogsManager;
+import HistoryRecorder.TransferHistory;
 
 public class HTTPServer implements Runnable {
 
     private ServerSocket serverSocket;
     private int port;
-
+    //TODO: meter para aqui o filepath
 
     public HTTPServer(int port) throws IOException {
         this.port = port;
@@ -24,11 +27,6 @@ public class HTTPServer implements Runnable {
     }
     
     public void run() {
-        Map<String,LogsManager> logs = new HashMap<>();
-        logs.put("teste",null);
-        logs.put("teste2",null);
-        
-
         try {
             while(!serverSocket.isClosed()) {
 
@@ -54,7 +52,7 @@ public class HTTPServer implements Runnable {
                 OutputStream out = clientSocket.getOutputStream();
                 out.write("HTTP/1.1 200 OK\r\n".getBytes());
                 out.write("\r\n".getBytes());
-                getHandler(newString[1], logs, out);                                        //handler
+                getHandler(newString[1],out);                                        //handler
                 out.write("\r\n\r\n".getBytes());
                 out.flush();
                 System.err.println("Client connection closed!");
@@ -64,9 +62,10 @@ public class HTTPServer implements Runnable {
         }
         catch (SocketException e){
             
-            logs.clear(); // TODO: fazer qualquer coisa só pq sim...apenas deve haver 1 msg de terminação
+            System.err.println("HTTP SERVER CLOSED"); // TODO: fazer qualquer coisa só pq sim...apenas deve haver 1 msg de terminação
         }
-        catch(IOException e) {
+        //TODO: SEPARAR estas excessao?
+        catch(IOException | ClassNotFoundException e) {
             System.out.println("Something's wrong, I can feel it");
         }
 
@@ -75,49 +74,51 @@ public class HTTPServer implements Runnable {
     }
 
     /**
-     * TODO : Modificar isto para funcionar com os novos fileTransfers quando tiver material de teste
+     * TODO : ajeitar o filepath
+     * @throws ClassNotFoundException
      */
-    public void getHandler(String argument,Map<String,LogsManager> syncs,OutputStream out) throws IOException {
+    public void getHandler(String argument,OutputStream out) throws IOException, ClassNotFoundException {
         String [] splitArgument = argument.split("/");
         
         if(argument.equals("/")) {
-            mainMenu(syncs,out);
+            mainMenu(out);
         }
         else if(splitArgument.length == 2) {
-            for(Map.Entry<String,LogsManager> entry :syncs.entrySet()) {
-                // TODO tem de ser direcionado para um metodo que mostra os logsmanagers 
-                if(splitArgument[1].equals(entry.getKey())) {
-                    out.write(("<b><h1>"+ entry.getKey() + "</h1></b>").getBytes());
-                    out.write(("<h3>nome do file</h3>").getBytes());
-                    out.write(("<p>&nbsp&nbsp&nbsp<i>"+ "Last Updated: </i>").getBytes());
-                    out.write(("11/11/2922" + "</p>").getBytes());
-                    out.write(("<p>&nbsp&nbsp&nbsp<i>"+ "Time of Transfer:20s </i>").getBytes());
-                    out.write(("<p>&nbsp&nbsp&nbsp<i>"+ "Bits Per Second: 32</i>").getBytes());
-
-                    out.write(("<h3>nome do file2</h3>").getBytes());
-                    out.write(("<p>&nbsp&nbsp&nbsp<i>"+ "Last Updated: </i>").getBytes());
-                    out.write(("11/11/2922" + "</p>").getBytes());
-                    out.write(("<p>&nbsp&nbsp&nbsp<i>"+ "Time of Transfer: </i>").getBytes());
-                    out.write(("<p>&nbsp&nbsp&nbsp<i>"+ "Bits Per Second: </i>").getBytes());
-                    break;
-                }
-            }
+            out.write(("<a href=\"http://localhost:" + port + "\">back</a>").getBytes());
+            out.write((getSync("onomedofile")).getBytes());
         }
-        else if(splitArgument.length == 3) {
-            //TODO fazer dps de ter definido a cena, é colocar o metodo que vai deixar/parar de um file de sincronizar
-            out.write(("<b><h1>OH maluco esta parte e dos logs que ainda nao ta feito</h1></b>").getBytes());
-        }
+        
     }
-    
+
+
+    //gets all folders that are synchronizing
+    public Set<String> getAllSyncs(String Filepath) throws IOException { 
+        Path folder = Paths.get(Filepath);
+        Set<String> files = new HashSet<>();
+        for(Path file: Files.list(folder).toList()) {
+            files.add(file.getFileName().toString());
+            
+        }
+        return files;
+    }
+
+    //Gets all files information from a determined folder that is synchronizing
+    public String getSync(String filename) throws IOException, ClassNotFoundException {
+       
+        TransferHistory history = new TransferHistory(filename);
+        return history.toHTML();
+      
+    }
 
     /**
-     *TODO: modificar isto para a nova maneira
-     * @throws IOException
+     *TODO: arranjar o filepath
+     * 
      */
-    public void mainMenu(Map<String,LogsManager> syncs,OutputStream out) throws IOException {
+    public void mainMenu(OutputStream out) throws IOException {
+        Set<String> files = getAllSyncs("HARDCODED");
         out.write("<b><h1>Menu Principal</h1></b>".getBytes());
-        for( Map.Entry<String,LogsManager> entry :syncs.entrySet()) {
-        out.write(("<p><a href=\"http://localhost:" + port + "/" + entry.getKey() + "\">"+ entry.getKey()  + "</a></p>").getBytes());
+        for( String entry : files) {
+            out.write(("<p><a href=\"http://localhost:" + port + "/" + entry + "\">"+ entry  + "</a></p>").getBytes());
         }
     }
 
