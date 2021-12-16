@@ -1,10 +1,6 @@
 package HistoryRecorder;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,7 +11,7 @@ import java.util.Set;
 
 import Logs.TransferLogs;
 
-public class TransferHistory {
+public class TransferHistory implements Serializable {
 
     private final Map<String,FileTransferHistory> files;
 
@@ -46,7 +42,6 @@ public class TransferHistory {
             files.replace(fileTransfer.getFileName(),
                     new FileTransferHistory(FileTime.fromMillis(0),10,10));
     }
-
 
     public void saveTransferHistory(String filepath) throws IOException {
         ObjectOutputStream os =

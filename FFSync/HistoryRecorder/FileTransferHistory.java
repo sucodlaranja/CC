@@ -1,11 +1,12 @@
 package HistoryRecorder;
 
+import java.io.Serializable;
 import java.nio.file.attribute.FileTime;
 
 /**
  * Represents entry of a transfer.
  */
-public class FileTransferHistory{
+public class FileTransferHistory implements Serializable {
     private FileTime lastUpdated;
     private int timeOfTransfer;
     private int bitsPSeg;
