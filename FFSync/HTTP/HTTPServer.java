@@ -20,10 +20,12 @@ public class HTTPServer implements Runnable {
     private ServerSocket serverSocket;
     private int port;
     //TODO: meter para aqui o filepath
+    private String filepath;
 
     public HTTPServer(int port) throws IOException {
         this.port = port;
         this.serverSocket = new ServerSocket(port);
+        this.filepath = "HistorySaved";
     }
     
     public void run() {
@@ -31,8 +33,8 @@ public class HTTPServer implements Runnable {
             while(!serverSocket.isClosed()) {
 
                 Socket clientSocket = serverSocket.accept();
-            
-                System.err.println("Client Connected");
+
+
 
                 
                 BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -44,18 +46,15 @@ public class HTTPServer implements Runnable {
                     if (newString[0] != null && newString[0].equals("GET")) {
                         break;
                     }
-                    else if (s.isEmpty()) {
-                        break;
-                    }
                 }
 
                 OutputStream out = clientSocket.getOutputStream();
                 out.write("HTTP/1.1 200 OK\r\n".getBytes());
                 out.write("\r\n".getBytes());
-                getHandler(newString[1],out);                                        //handler
+                if(s != null) getHandler(newString[1],out);                                        //handler
                 out.write("\r\n\r\n".getBytes());
+
                 out.flush();
-                System.err.println("Client connection closed!");
                 out.close();
                 in.close();
             }
@@ -66,7 +65,7 @@ public class HTTPServer implements Runnable {
         }
         //TODO: SEPARAR estas excessao?
         catch(IOException | ClassNotFoundException e) {
-            System.out.println("Something's wrong, I can feel it");
+            e.printStackTrace();
         }
 
         // Termination message.
@@ -80,12 +79,14 @@ public class HTTPServer implements Runnable {
     public void getHandler(String argument,OutputStream out) throws IOException, ClassNotFoundException {
         String [] splitArgument = argument.split("/");
         
-        if(argument.equals("/")) {
+        if(argument.equals("/") || argument.equals("/favicon.ico")) {
             mainMenu(out);
         }
         else if(splitArgument.length == 2) {
+            out.write(("<h1>" + splitArgument[1] + "</h1>").getBytes());
             out.write(("<a href=\"http://localhost:" + port + "\">back</a>").getBytes());
-            out.write((getSync("onomedofile")).getBytes());
+            //out.write((getSync("onomedofile")).getBytes());
+            out.write((getSync(filepath + "\\" + splitArgument[1])).getBytes());
         }
         
     }
@@ -115,10 +116,10 @@ public class HTTPServer implements Runnable {
      * 
      */
     public void mainMenu(OutputStream out) throws IOException {
-        Set<String> files = getAllSyncs("HARDCODED");
+        Set<String> files = getAllSyncs(filepath);
         out.write("<b><h1>Menu Principal</h1></b>".getBytes());
         for( String entry : files) {
-            out.write(("<p><a href=\"http://localhost:" + port + "/" + entry + "\">"+ entry  + "</a></p>").getBytes());
+            out.write(("<h2><a href=\"http://localhost:" + port + "/" + entry + "\">"+ entry  + "</a></h2>").getBytes());
         }
     }
 
