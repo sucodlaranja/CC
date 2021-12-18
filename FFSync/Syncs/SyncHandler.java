@@ -26,12 +26,10 @@ public class SyncHandler implements Runnable{
 
     private boolean isBiggerNumber;
     private int handlerPort;
-    private byte[] secret;
 
     public SyncHandler(String filepath, InetAddress address){
         this.syncInfo = new SyncInfo(filepath, address);
         this.ourRandom = new Random().nextInt();
-        this.secret = FTRapidPacket.DEFAULT_MUTUAL_SECRET;
     }
 
     public SyncInfo getInfo(){
@@ -54,7 +52,6 @@ public class SyncHandler implements Runnable{
         loop:
             sends INIT_ACK to peer listener
             waits for ack in handler
-
         send logs to peer handler port
         wait and receive guide
         */
@@ -117,11 +114,11 @@ public class SyncHandler implements Runnable{
         byte[] logs = logsManager.getBytes();
 
         // Send logs to peer handler port.
-        SenderSNW senderSNW = new SenderSNW(this.syncSocket, this.syncInfo.getIpAddress(), this.handlerPort, logs, FTRapidPacket.LOGS, this.secret);
+        SenderSNW senderSNW = new SenderSNW(this.syncSocket, this.syncInfo.getIpAddress(), this.handlerPort, logs, FTRapidPacket.LOGS);
         senderSNW.send();
 
         // Wait, receive and return guide.
-        ReceiverSNW receiverSNW = new ReceiverSNW(this.syncSocket, FTRapidPacket.GUIDE, this.syncInfo.getIpAddress(), this.handlerPort, this.secret);
+        ReceiverSNW receiverSNW = new ReceiverSNW(this.syncSocket, FTRapidPacket.GUIDE, this.syncInfo.getIpAddress(), this.handlerPort);
         byte[] guideBytes = receiverSNW.requestAndReceive();
 
         return guideBytes == null? null : new Guide(guideBytes); // ABORT SYNC = FALSE.
@@ -147,7 +144,7 @@ public class SyncHandler implements Runnable{
         this.isBiggerNumber = true;
 
         // Acknowledge that we've received the INIT_ACK packet and receive LOGS.
-        ReceiverSNW receiverSNW = new ReceiverSNW(this.syncSocket, FTRapidPacket.LOGS, this.getInfo().getIpAddress(), this.handlerPort, this.secret);
+        ReceiverSNW receiverSNW = new ReceiverSNW(this.syncSocket, FTRapidPacket.LOGS, this.getInfo().getIpAddress(), this.handlerPort);
         byte[] logsBytes = receiverSNW.requestAndReceive();
 
         // Create LogsManager instance.
@@ -169,7 +166,7 @@ public class SyncHandler implements Runnable{
         Guide guide = new Guide(alfa.getLogs(), beta.getLogs());
 
         // Send guide.
-        SenderSNW senderSNW = new SenderSNW(this.syncSocket, this.getInfo().getIpAddress(), this.handlerPort, guide.getBytes(), FTRapidPacket.GUIDE, this.secret);
+        SenderSNW senderSNW = new SenderSNW(this.syncSocket, this.getInfo().getIpAddress(), this.handlerPort, guide.getBytes(), FTRapidPacket.GUIDE);
         senderSNW.send();
 
         return guide; // ABORT SYNC = null.
@@ -227,7 +224,7 @@ public class SyncHandler implements Runnable{
 
         // Check if socket is closed: something might have failed.
         if (!this.syncSocket.isClosed() && guide != null) {
-            TransferHandler transferHandler = new TransferHandler(MAX_THREADS_PER_TRANSFER, guide, this.syncInfo.getFilepath(), this.syncSocket, this.syncInfo.getIpAddress(), this.handlerPort, this.isBiggerNumber, this.secret);
+            TransferHandler transferHandler = new TransferHandler(MAX_THREADS_PER_TRANSFER, guide, this.syncInfo.getFilepath(), this.syncSocket, this.syncInfo.getIpAddress(), this.handlerPort, this.isBiggerNumber);
             transferHandler.processTransfers();
         }
 

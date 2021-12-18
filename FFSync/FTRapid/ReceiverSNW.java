@@ -1,19 +1,14 @@
 package FTRapid;
 
 
-import javax.crypto.*;
-import javax.crypto.spec.SecretKeySpec;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.InvalidKeyException;
-import java.security.Key;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class ReceiverSNW {
@@ -30,13 +25,8 @@ public class ReceiverSNW {
     private final String filepath;
     private final String filename;
 
-    // Mutal secret: used to check data integrity and also to decryption.
-    private final Key AES_KEY;
-    private final Key HMAC_KEY;
-
-
     // Requesting and receiving files.
-    public ReceiverSNW(InetAddress address, int handlerPort, String filepath, String filename, byte[] secret){
+    public ReceiverSNW(InetAddress address, int handlerPort, String filepath, String filename){
 
         // Local vars.
         DatagramSocket localSocket = null;
@@ -52,23 +42,20 @@ public class ReceiverSNW {
             this.filepath = filepath;
             this.filename = filename;
             this.MODE = FTRapidPacket.FILE;
-            this.ADDRESS = address;
-            this.PORT = handlerPort;
-            this.AES_KEY = new SecretKeySpec(secret, "AES");
-            this.HMAC_KEY = new SecretKeySpec(secret, "HmacSHA1");
         }
+
+        this.ADDRESS = address;
+        this.PORT = handlerPort;
     }
 
     // LOGS and GUIDE.
-    public ReceiverSNW(DatagramSocket socket, int MODE, InetAddress address, int handlerPort, byte[] secret){
+    public ReceiverSNW(DatagramSocket socket, int MODE, InetAddress address, int handlerPort){
         this.socket = socket;
         this.MODE = MODE;
         this.ADDRESS = address;
         this.PORT = handlerPort;
         this.filename = "";
         this.filepath = "";
-        this.AES_KEY = new SecretKeySpec(secret, "AES");
-        this.HMAC_KEY = new SecretKeySpec(secret, "HmacSHA1");
     }
 
     // Request the file to the other peer. Sending packet to the transfer handler listener.
@@ -166,8 +153,10 @@ public class ReceiverSNW {
 
                     // Check and save packet.
                     FTRapidPacket ftRapidPacket = new FTRapidPacket(receivedPacket, this.MODE);
-                    if(checkDataPacket(ftRapidPacket, prevSeqNum)){
-                        allPackets.add(index, decryptData(ftRapidPacket.getDataBytes()));
+                    if(ftRapidPacket.getOPCODE() == FTRapidPacket.DATA
+                            && ftRapidPacket.getSequenceNumber() != prevSeqNum)
+                    {
+                        allPackets.add(index, ftRapidPacket.getDataBytes().clone());
                         timedOut = false;
                     }
                 }
@@ -236,38 +225,4 @@ public class ReceiverSNW {
         return ret;
     }
 
-    // Checks received packet and its integrity. Checks if it is a DATA packet, with the required seqNum.
-    private boolean checkDataPacket(FTRapidPacket ftRapidPacket, int prevSeqNum){
-        //
-        byte[] digest = new byte[20];
-        try {
-            Mac receiverMac = Mac.getInstance("HmacSHA1");
-            receiverMac.init(HMAC_KEY);
-            digest = receiverMac.doFinal(ftRapidPacket.getDataBytes());
-        }
-        catch (NoSuchAlgorithmException | InvalidKeyException e){
-            System.out.println("Failed to verify integrity of packet.");
-        }
-
-        return ftRapidPacket.getOPCODE() == FTRapidPacket.DATA
-                && ftRapidPacket.getSequenceNumber() != prevSeqNum
-                && Arrays.equals(ftRapidPacket.getDigest(), digest);
-    }
-
-    private byte[] decryptData(byte[] dataBytes) {
-        byte[] decrypted;
-        try {
-            Cipher receiverCipher = Cipher.getInstance("AES");
-            receiverCipher.init(Cipher.DECRYPT_MODE, AES_KEY);
-            decrypted = receiverCipher.doFinal(dataBytes);
-        }
-        catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException |IllegalBlockSizeException | BadPaddingException e){
-            System.out.println("Failed to decode data.");
-            decrypted = dataBytes;
-        }
-
-        return decrypted.clone();
-    }
-
 }
-

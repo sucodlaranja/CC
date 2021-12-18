@@ -2,15 +2,9 @@ package FTRapid;
 
 import Listener.Listener;
 import Syncs.SyncInfo;
-
-import javax.crypto.*;
-import javax.crypto.spec.SecretKeySpec;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.Key;
-import java.security.NoSuchAlgorithmException;
 
 /**
  * Constructor receives datagram packet and transforms byte stream to readable and accessible information.
@@ -41,9 +35,6 @@ public class FTRapidPacket {
     public final static int LOGS = 1;
     public final static int GUIDE = 2;
 
-    // Default Mutual Secret: used to check data integrity and also to decryption.
-    public final static byte[] DEFAULT_MUTUAL_SECRET = "<16bytekeyhere!>".getBytes(StandardCharsets.UTF_8);
-    public final static int DIGEST_SIZE = 20;
 
     private final InetAddress PeerAddress;
     private final Integer key;
@@ -56,7 +47,6 @@ public class FTRapidPacket {
     private final String filepath;
     private final String filename;
     private final byte[] dataBytes;
-    private final byte[] digest;
 
     public FTRapidPacket(DatagramPacket rcvPacket, int knownMode) {
         // Local variables
@@ -67,8 +57,6 @@ public class FTRapidPacket {
         String local_filepath = "";
         int local_sequenceNumber = -1;
         byte[] local_dataBytes = null;
-        byte[] local_digest = new byte[DIGEST_SIZE];
-
 
         // Parse data
         String dataStr = new String(rcvPacket.getData(), StandardCharsets.UTF_8);
@@ -101,18 +89,9 @@ public class FTRapidPacket {
             local_filepath = local_transferMODE == FILE ? data[3] : "";
         }
         else if(tempOpcode == DATA){
-            // Data: 4@seqNum@digest+data
             if(local_transferMODE == FILE)
                 local_sequenceNumber = Integer.parseInt(data[1]);
-
-            byte[] digestAndData = dataStr.split("@", 3)[2].getBytes(StandardCharsets.UTF_8);
-
-            // Copy the first 20 bytes from digestAndData to the local_digest variable.
-            System.arraycopy(digestAndData, 0, local_digest, 0, DIGEST_SIZE);
-
-            // Copy the rest of the content data to local_dataBytes.
-            local_dataBytes = new byte[digestAndData.length - DIGEST_SIZE];
-            System.arraycopy(digestAndData, DIGEST_SIZE, local_dataBytes, 0, local_dataBytes.length);
+            local_dataBytes = dataStr.split("@", 3)[2].getBytes(StandardCharsets.UTF_8);
         }
         else if(tempOpcode == RQF){
             local_filename = data[1];
@@ -133,17 +112,12 @@ public class FTRapidPacket {
         this.PeerAddress = rcvPacket.getAddress();
         this.key = calculateFTRapidPacketKey(this.filename, this.PeerAddress);
         this.dataBytes = local_dataBytes;
-        this.digest = local_digest;
     }
 
     public static Integer calculateFTRapidPacketKey(String filename, InetAddress address){
         return (filename + address.toString()).hashCode();
     }
 
-
-    public byte[] getDigest() {
-        return digest.clone();
-    }
     public Integer getKey() {
         return key;
     }
@@ -173,7 +147,7 @@ public class FTRapidPacket {
     }
     public byte[] getDataBytes() {
         // Get data of DATA packet.
-        return this.dataBytes.clone();
+        return this.dataBytes;
     }
 
     // GET ACK packet: 0@
@@ -208,42 +182,15 @@ public class FTRapidPacket {
         byte[] metaBytes = metaStr.getBytes(StandardCharsets.UTF_8);
         return new DatagramPacket(metaBytes, metaBytes.length, ADDRESS, PORT);
     }
-    // Get DATA packet, digest_size=20bytes: 4@seqNum@digest+data
-    public static DatagramPacket getDATAPacket(InetAddress ADDRESS, int PORT, int seqNum, byte[] data, byte[] secret){
+    // Get DATA packet: 4@seqNum@data
+    public static DatagramPacket getDATAPacket(InetAddress ADDRESS, int PORT, int seqNum, byte[] data){
         // DATA packet header info.
         byte[] dataHeader = (DATA + "@" + seqNum + "@").getBytes(StandardCharsets.UTF_8);
 
-        // Encode data.
-        byte[] encryptedData;
-        try {
-            Key aesKey = new SecretKeySpec(secret, "AES");
-            Cipher senderCipher = Cipher.getInstance("AES");
-            senderCipher.init(Cipher.ENCRYPT_MODE, aesKey);
-            encryptedData = senderCipher.doFinal(data);
-        }
-        catch (NoSuchAlgorithmException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | NoSuchPaddingException e){
-            System.out.println("Data not encrypted. Something went wrong with the encoding.");
-            encryptedData = data;
-        }
-
-        // Get digest. It will grant data integrity.
-        byte[] senderDigest;
-        try{
-            Key hmacKey = new SecretKeySpec(secret, "HmacSHA1");
-            Mac senderMac = Mac.getInstance("HmacSHA1");
-            senderMac.init(hmacKey);
-            senderDigest = senderMac.doFinal(encryptedData);
-        }
-        catch (NoSuchAlgorithmException | InvalidKeyException e){
-            System.out.println("Wrong HMAC algorithm. Digest failed to be created.");
-            senderDigest = new byte[DIGEST_SIZE]; // HmacSHA1 has 20 bytes of length.
-        }
-
         // Copy mode, seqNum and data all to one byte array.
-        byte[] finalData = new byte[dataHeader.length + senderDigest.length + encryptedData.length];
+        byte[] finalData = new byte[dataHeader.length + data.length];
         System.arraycopy(dataHeader, 0, finalData, 0, dataHeader.length);
-        System.arraycopy(senderDigest, 0, finalData, dataHeader.length, senderDigest.length);
-        System.arraycopy(encryptedData, 0, finalData, dataHeader.length + senderDigest.length, encryptedData.length);
+        System.arraycopy(data, 0, finalData, dataHeader.length, data.length);
 
         return new DatagramPacket(finalData, finalData.length, ADDRESS, PORT);
     }

@@ -32,11 +32,8 @@ public class SenderSNW {
     private final InetAddress ADDRESS;
     private final int PORT;
 
-    // Mutal secret: used to check data integrity and also to decryption.
-    private final byte[] secret;
-
     // Sending File
-    public SenderSNW(InetAddress address, int PORT, String filepath, byte[] secret){
+    public SenderSNW(InetAddress address, int PORT, String filepath){
         // Local variables.
         DatagramSocket localSocket = null;
         int localMode = FTRapidPacket.ERROR;
@@ -68,24 +65,22 @@ public class SenderSNW {
             this.socket = localSocket;
             this.ADDRESS = address;
             this.PORT = PORT;
-            this.secret = secret.clone();
         }
     }
 
     // Sending LOG or GUIDE.
-    public SenderSNW(DatagramSocket socket, InetAddress address, int PORT, byte[] data, int mode, byte[] secret){
+    public SenderSNW(DatagramSocket socket, InetAddress address, int PORT, byte[] data, int mode){
         this.socket = socket;
         this.ADDRESS = address;
         this.PORT = PORT;
         this.dataToSend = data.clone();
         this.MODE = mode;
         this.FILEPATH = "";
-        this.secret = secret.clone();
     }
 
     // Send file to another peer, after sending META packet.
     // TODO: simplify code -> "while(timeout){}" piece of code is similar...
-    public void send(){
+    public int send(){
         // Let's split the byte[] dataToSend into many packets (use packet size determined in FTRapidPacket class).
         List<byte[]> allPackets = split(this.dataToSend);
 
@@ -113,7 +108,8 @@ public class SenderSNW {
                 // If we receive an ack, stop the while loop
                 if (ftRapidPacket.getOPCODE() == FTRapidPacket.ACK && ftRapidPacket.getSequenceNumber() == 1) {
                     timedOut = false;
-                }
+                } else
+                    socket.send(metaPacket);
             }
             catch (SocketTimeoutException exception) {
                 // If we don't get an ack, prepare to resend metadata.
@@ -130,7 +126,7 @@ public class SenderSNW {
             int timeOutCounter = 5; // TODO: Is 5 timeouts limit a good number?
 
             // Create and send data packet.
-            DatagramPacket dataPacket = FTRapidPacket.getDATAPacket(this.ADDRESS, this.PORT, seqNum, packData, this.secret);
+            DatagramPacket dataPacket = FTRapidPacket.getDATAPacket(this.ADDRESS, this.PORT, seqNum, packData);
             timedOut = true;
             while (timedOut) {
                 // Create a byte array for receiving data.
@@ -173,6 +169,7 @@ public class SenderSNW {
             socket.close();
 
         // ALL IS OK.
+        return 0; // TODO: TEMPO TRANSFER + BITS/S - maybe with a record.
     }
 
     // Split byte[] into list. Packet Size defined in FTRapidPacket class.
@@ -200,4 +197,3 @@ public class SenderSNW {
     }
 
 }
-
