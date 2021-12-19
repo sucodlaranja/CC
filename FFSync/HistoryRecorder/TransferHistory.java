@@ -37,7 +37,8 @@ public class TransferHistory implements Serializable {
         for (Map.Entry<String, FileTransferHistory> file : files.entrySet())
             if(!fileNames.remove(file.getKey())) remove.add(file.getKey());
 
-        for(String file : remove) files.remove(file);
+        for(String file : remove)
+            files.remove(file);
 
         for (String file : fileNames)
             files.put(file,new FileTransferHistory(null,-1,-1));

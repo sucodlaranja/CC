@@ -125,6 +125,11 @@ public class ReceiverSNW {
         int N_PACKETS = (int) Math.ceil((double) FILESIZE / FTRapidPacket.DATA_CONTENT_SIZE);
         int LAST_PACKET_DATA_SIZE = FILESIZE - (N_PACKETS - 1) * FTRapidPacket.DATA_CONTENT_SIZE;
 
+        // TODO: REMOVE
+        System.out.println("filesize=" + FILESIZE);
+        System.out.println("npackets=" + N_PACKETS);
+        System.out.println("lastpacket=" + LAST_PACKET_DATA_SIZE);
+
         // All received byte packets will be here.
         List<byte[]> allPackets = new ArrayList<>(N_PACKETS);
 
@@ -139,6 +144,7 @@ public class ReceiverSNW {
             DatagramPacket ACK = FTRapidPacket.getACKPacket(ADDRESS, PORT, prevSeqNum);
 
             // First ACK is for the META packet (if index == 0)
+            int timeOutCounter = 3;
             timedOut = true;
             while (timedOut) {
                 byte[] buf = new byte[FTRapidPacket.BUFFER_SIZE];
@@ -158,10 +164,20 @@ public class ReceiverSNW {
                     {
                         allPackets.add(index, ftRapidPacket.getDataBytes().clone());
                         timedOut = false;
+
+                        System.out.println("Received packet " + index + "/" + (N_PACKETS-1)); // TODO: REMOVE
                     }
                 }
                 catch (SocketTimeoutException e){
-                    System.out.println("Timeout while waiting for data packet. Resending ACK.");
+                    if(timeOutCounter > 0) {
+                        timeOutCounter--;
+                        System.out.println("Timeout while waiting for data packet. Resending ACK.");
+                    }
+                    else {
+                        timedOut = false;
+                        System.out.println("Timeout limit exceeded.");
+                    }
+
                 }
                 catch (IOException e) {
                     e.printStackTrace();
@@ -206,6 +222,8 @@ public class ReceiverSNW {
                 e.printStackTrace();
             }
         }
+
+        System.out.println(this.filepath + " was received."); // TODO: REMOVE
 
         return fileBytes.clone();
     }

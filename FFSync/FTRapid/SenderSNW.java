@@ -85,6 +85,9 @@ public class SenderSNW {
         List<byte[]> allPackets = split(this.dataToSend);
 
         // Create META packet.
+        System.out.println("filesize=" + dataToSend.length + " : n_pack=" + allPackets.size()); // TODO: REMOVE
+        System.out.println("filepath=" + FILEPATH);// TODO: REMOVE
+
         DatagramPacket metaPacket = FTRapidPacket.getMETAPacket(ADDRESS, PORT, this.MODE, dataToSend.length, this.FILEPATH);
 
         // Send META packet and wait for approval.
@@ -120,6 +123,8 @@ public class SenderSNW {
             }
         }
 
+
+        int counter = 0;
         // Send data to the other peer.
         int seqNum = 0; // sequence number can only be 0/1.
         for (byte[] packData : allPackets) {
@@ -147,6 +152,8 @@ public class SenderSNW {
                     if (ftRapidPacket.getOPCODE() == FTRapidPacket.ACK && ftRapidPacket.getSequenceNumber() == seqNum)
                     {
                         timedOut = false;
+                        System.out.println("Sended packet " + counter + "/" + (allPackets.size() - 1));// TODO: REMOVE
+                        counter++;// TODO: REMOVE
                     }
                 }
                 catch (SocketTimeoutException exception) {
@@ -168,6 +175,9 @@ public class SenderSNW {
         if(this.MODE == FTRapidPacket.FILE)
             socket.close();
 
+
+        System.out.println(this.FILEPATH + " was sent."); // TODO: REMOVE
+
         // ALL IS OK.
         return 0; // TODO: TEMPO TRANSFER + BITS/S - maybe with a record.
     }
@@ -175,23 +185,22 @@ public class SenderSNW {
     // Split byte[] into list. Packet Size defined in FTRapidPacket class.
     private List<byte[]> split(byte[] data) {
         // Size of each packet.
-        int PACKET_DATA_SIZE = FTRapidPacket.PACKET_SIZE;
 
         // Number of packets
-        int nPackets = (int) Math.ceil((double) data.length / PACKET_DATA_SIZE);
+        int nPackets = (int) Math.ceil((double) data.length / FTRapidPacket.DATA_CONTENT_SIZE);
 
         // Create and fill list to be returned.
         List<byte[]> retList = new ArrayList<>(nPackets);
         int i;
         for (i = 0; i < nPackets - 1; i++) {
-            retList.add(i, new byte[PACKET_DATA_SIZE]);
-            System.arraycopy(data, i * PACKET_DATA_SIZE, retList.get(i), 0, retList.get(i).length);
+            retList.add(i, new byte[FTRapidPacket.DATA_CONTENT_SIZE]);
+            System.arraycopy(data, i * FTRapidPacket.DATA_CONTENT_SIZE, retList.get(i), 0, retList.get(i).length);
         }
 
         // Create last packet - usually with a different size.
-        int lastPacketSize = data.length - (nPackets-1) * PACKET_DATA_SIZE;
+        int lastPacketSize = data.length - (nPackets-1) * FTRapidPacket.DATA_CONTENT_SIZE;
         retList.add(i, new byte[lastPacketSize]);
-        System.arraycopy(data, i * PACKET_DATA_SIZE, retList.get(i), 0, retList.get(i).length);
+        System.arraycopy(data, i * FTRapidPacket.DATA_CONTENT_SIZE, retList.get(i), 0, retList.get(i).length);
 
         return retList;
     }

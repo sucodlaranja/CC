@@ -4,6 +4,7 @@ import Listener.Listener;
 import Syncs.SyncInfo;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -36,7 +37,7 @@ public class FTRapidPacket {
     public final static int GUIDE = 2;
 
 
-    private final InetAddress PeerAddress;
+    private final InetAddress peerAddress;
     private final Integer key;
     private final int OPCODE;
     private final int randomNumber;
@@ -57,6 +58,7 @@ public class FTRapidPacket {
         String local_filepath = "";
         int local_sequenceNumber = -1;
         byte[] local_dataBytes = null;
+        InetAddress local_address = rcvPacket.getAddress();
 
         // Parse data
         String dataStr = new String(rcvPacket.getData(), StandardCharsets.UTF_8);
@@ -109,9 +111,19 @@ public class FTRapidPacket {
         this.transferMODE = local_transferMODE;
         this.filesize = local_filesize;
         this.sequenceNumber = local_sequenceNumber;
-        this.PeerAddress = rcvPacket.getAddress();
-        this.key = calculateFTRapidPacketKey(this.filename, this.PeerAddress);
         this.dataBytes = local_dataBytes;
+
+        int local_key = 0;
+        try {
+            local_address = rcvPacket.getAddress() == null? InetAddress.getByName("localhost") : rcvPacket.getAddress();
+            local_key = calculateFTRapidPacketKey(this.filename, local_address);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+        finally {
+            this.peerAddress = local_address;
+            this.key = local_key;
+        }
     }
 
     public static Integer calculateFTRapidPacketKey(String filename, InetAddress address){
@@ -134,7 +146,7 @@ public class FTRapidPacket {
         return filename;
     }
     public InetAddress getPeerAddress() {
-        return PeerAddress;
+        return peerAddress;
     }
     public int getTransferMODE() {
         return transferMODE;

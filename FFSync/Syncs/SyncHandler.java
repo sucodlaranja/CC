@@ -3,9 +3,12 @@ package Syncs;
 import FTRapid.FTRapidPacket;
 import FTRapid.ReceiverSNW;
 import FTRapid.SenderSNW;
+import HTTP.HTTPServer;
+import HistoryRecorder.TransferHistory;
 import Listener.Listener;
 import Logs.Guide;
 import Logs.LogsManager;
+import Logs.TransferLogs;
 import Transfers.TransferHandler;
 import java.io.IOException;
 import java.net.*;
@@ -27,6 +30,8 @@ public class SyncHandler implements Runnable{
     private boolean isBiggerNumber; // ourRandom > peerRandom?
     private int handlerPort;        // Socket Port of syncHandler's peer.
 
+    private final TransferHistory syncHistory;
+
     public SyncHandler(String filepath, InetAddress address){
         // SyncInfo stores important information about this sync.
         this.syncInfo = new SyncInfo(filepath, address);
@@ -34,6 +39,8 @@ public class SyncHandler implements Runnable{
         // Create a packet with random number.
         this.ourRandom = new Random().nextInt();
         this.randomNumberPacket = FTRapidPacket.getINITPacket(this.ourRandom, this.syncInfo);
+
+        this.syncHistory = new TransferHistory();
     }
 
     // ourRandom < peerRandom
@@ -55,6 +62,8 @@ public class SyncHandler implements Runnable{
         LogsManager logsManager = null;
         try {
             logsManager = new LogsManager(this.syncInfo.getFilepath());
+            this.syncHistory.updateLogs(logsManager.getFileNames());
+            this.syncHistory.saveTransferHistory(HTTPServer.HTTP_FILEPATH + "/" + this.syncInfo.getFilename() + "-" + this.syncInfo.getId());
         }
         catch (IOException e){
             System.out.println("Failed to create logs from: " + this.syncInfo.getFilepath());
@@ -64,6 +73,8 @@ public class SyncHandler implements Runnable{
         // Abort sync if the LOGS can't be created.
         if(logsManager == null)
             return null; // ABORT SYNC = null.
+
+
 
         // Create INIT_ACK packet (default port is LISTENER).
         DatagramPacket init_ack = FTRapidPacket.getINITACKPacket(this.syncInfo);
@@ -144,6 +155,8 @@ public class SyncHandler implements Runnable{
         LogsManager alfa;
         try {
             alfa = new LogsManager(this.syncInfo.getFilepath());
+            this.syncHistory.updateLogs(alfa.getFileNames());
+            this.syncHistory.saveTransferHistory(HTTPServer.HTTP_FILEPATH + "/" + this.syncInfo.getFilename() + "-" + this.syncInfo.getId());
         }
         catch (IOException e){
             System.out.println("Failed to create logs from: " + this.syncInfo.getFilepath());
@@ -162,6 +175,9 @@ public class SyncHandler implements Runnable{
     }
 
     private void syncOnce() {
+        System.out.println("one_sync_started"); // TODO: REMOVE
+
+
         // Initiate sync
         boolean nextStep = false;
         Guide guide = null;
@@ -203,23 +219,35 @@ public class SyncHandler implements Runnable{
             else
                 this.syncInfo.deactivate();
 
-            // TODO: Insert some waiting time? Check pending requests only if anything changed...
             // TODO: Abort sync in case of no response for a given ammount of time.
+
         }
 
         // Check if socket is closed: something might have failed.
-        if (!this.syncSocket.isClosed() && guide != null) {
+        if (!this.syncSocket.isClosed() && (guide != null) && (guide.getGuide().size() > 0)) {
             this.syncInfo.activate();
+
+            for(TransferLogs tl : guide.getGuide())
+                System.out.println("Filename: " + tl.getFileName() + " b=" + tl.isSender());
+
+            // History
+            this.syncHistory.updateGuide(guide.getGuide());
+            try {
+                this.syncHistory.saveTransferHistory(HTTPServer.HTTP_FILEPATH + "/" + this.syncInfo.getFilename() + "-" + this.syncInfo.getId());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
             TransferHandler transferHandler = new TransferHandler(5, guide, this.syncInfo.getFilepath(), this.syncSocket, this.syncInfo.getIpAddress(), this.handlerPort, this.isBiggerNumber);
             transferHandler.processTransfers();
-        }
 
-        // Close socket
-        this.closeSocket();
+        }
+        System.out.println("one_sync_finished"); // TODO: REMOVE
     }
 
     @Override
     public void run() {
+
         try{
             // Create Socket.
             this.syncSocket = new DatagramSocket();
@@ -227,7 +255,7 @@ public class SyncHandler implements Runnable{
             // Sync folders with the other peer until the socket closes.
             while(!this.syncSocket.isClosed()){
                 this.syncOnce();
-                // TODO: write into syncInfo file?
+                // TODO: checkar logs a ver se foram updated
             }
 
             // Termination message.
