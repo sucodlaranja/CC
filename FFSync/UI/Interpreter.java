@@ -1,7 +1,6 @@
 package UI;
 
 import Syncs.Syncs;
-
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
@@ -27,14 +26,11 @@ public class Interpreter implements Runnable{
     private void syncStarter(String filepath, String addressStr){
 
         if(Files.exists(Path.of(filepath))){
-            System.out.println(filepath + " is a valid path.");
             try{
                 InetAddress address = InetAddress.getByName(addressStr);
-                System.out.println(addressStr + " is a valid ip address.");
 
-                // TODO: Create sync and respective handler -> CONCURRENCY ALERT!
-                this.syncs.createSync(filepath, address);
-
+                if(!this.syncs.createSync(filepath, address))
+                    System.out.println("Sync already exists. Nothing was done.");
             }
             catch (UnknownHostException e){
                 System.out.println(addressStr + " is an invalid ip address.");

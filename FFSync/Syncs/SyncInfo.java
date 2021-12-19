@@ -3,17 +3,19 @@ package Syncs;
 import java.net.InetAddress;
 
 public class SyncInfo {
-    private final String filepath;
-    private final InetAddress ipAddress;
-    private final int id;
-    private boolean active;
+    private final String filepath;          // "/home/rubensas/sync_folder" : without the final "/".
+    private final String filename;          // Name of the sync folder: "sync_folder", from the above example.
+    private final InetAddress ipAddress;    // IP Address of the other peer.
+    private final int id;                   // Sync ID: used to identify this sync.
+    private boolean active;                 // True if the sync is transfering files to another peer.
 
     public SyncInfo(String filepath, InetAddress ipAddress){
-        // "home/rubensas" must be the same as "home/rubensas/"
-        if(filepath.endsWith("/"))
-            this.filepath = filepath.substring(0, filepath.length() - 1);
-        else
-            this.filepath = filepath;
+        // "home/rubensas/sync_folder/" to "home/rubensas/sync_folder"
+        this.filepath = filepath.endsWith("/") ? filepath.substring(0, filepath.length() - 1) : filepath;
+
+        // filename = "sync_folder"
+        String[] pathSplit = this.filepath.split("/");
+        this.filename = pathSplit[pathSplit.length - 1];
 
         this.ipAddress = ipAddress;
         this.id = this.hashCode();
@@ -32,10 +34,11 @@ public class SyncInfo {
     public void activate() {
         this.active = true;
     }
+    public void deactivate() {
+        this.active = false;
+    }
     public String getFilename(){
-        // TODO: testar
-        String[] pathArray = this.filepath.split("/");
-        return pathArray[pathArray.length - 1];
+        return this.filename;
     }
 
     @Override

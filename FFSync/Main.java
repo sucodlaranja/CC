@@ -1,20 +1,10 @@
 import HTTP.HTTPServer;
 import Listener.Listener;
 import UI.Interpreter;
-
-import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.net.*;
-import java.nio.charset.StandardCharsets;
 
 public class Main {
-
-    /*
-    * Comandos
-    *   FFSync /home/rubensas/UM localhost
-    *
-    *
-    * */
 
     public static void main(String[] args) {
         // Parsing user input: "FFSync filepath ip"

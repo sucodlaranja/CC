@@ -18,35 +18,27 @@ import java.util.Random;
  * */
 public class SyncHandler implements Runnable{
 
-    private final int MAX_THREADS_PER_TRANSFER = 5;
-
-    private final SyncInfo syncInfo; // TODO: IMPROVE DATA MANAGEMENT...
-    private final Integer ourRandom;
+    private final SyncInfo syncInfo;
     private DatagramSocket syncSocket;
 
-    private boolean isBiggerNumber;
-    private int handlerPort;
+    private final Integer ourRandom;
+    private final DatagramPacket randomNumberPacket;
+
+    private boolean isBiggerNumber; // ourRandom > peerRandom?
+    private int handlerPort;        // Socket Port of syncHandler's peer.
 
     public SyncHandler(String filepath, InetAddress address){
+        // SyncInfo stores important information about this sync.
         this.syncInfo = new SyncInfo(filepath, address);
+
+        // Create a packet with random number.
         this.ourRandom = new Random().nextInt();
+        this.randomNumberPacket = FTRapidPacket.getINITPacket(this.ourRandom, this.syncInfo);
     }
-
-    public SyncInfo getInfo(){
-        return this.syncInfo.clone();
-    }
-
-    public void closeSocket(){
-        this.syncSocket.close();
-    }
-
 
     // ourRandom < peerRandom
     // returns true if sync has to be aborted, false if sync can proceed.
     private Guide inferiorRandomHandler() {
-        // TODO: REMOVE
-        System.out.println("Inferior.");
-
         /*
         calculate logs
         loop:
@@ -126,9 +118,6 @@ public class SyncHandler implements Runnable{
 
     // ourRandom > peerRandom
     private Guide superiorRandomHandler() {
-        // TODO: REMOVE
-        System.out.println("Superior.");
-
         // found INIT_ACK
         /*
         * loop:
@@ -172,23 +161,19 @@ public class SyncHandler implements Runnable{
         return guide; // ABORT SYNC = null.
     }
 
-    // TODO: ABORT SYNC IN CASE THE OTHER PEER ABORTED...CREATE TIMEOUT'S OR SOMETHING
     private void syncOnce() {
-        // Create packet with random number => destination=listener_port
-        DatagramPacket randomNumberPacket = FTRapidPacket.getINITPacket(this.ourRandom, this.syncInfo);
-
         // Initiate sync
         boolean nextStep = false;
         Guide guide = null;
         while (!this.syncSocket.isClosed() && !nextStep) {
 
-            // Check list of pending requests in Listener.Listener (INIT and INIT_ACK).
+            // Check list of pending requests in Listener.
             List<Integer> reqStatus = Listener.checkPendingRequests(this.syncInfo.getFilename(), this.syncInfo.getIpAddress(), this.ourRandom);
             switch (reqStatus.get(0)) {
                 case 0 -> {
                     // Send random number to other peer.
                     try {
-                        this.syncSocket.send(randomNumberPacket);
+                        this.syncSocket.send(this.randomNumberPacket);
                     }
                     catch (SocketException e){
                         System.out.println("SyncSocket closed.");
@@ -198,14 +183,11 @@ public class SyncHandler implements Runnable{
                         e.printStackTrace();
                     }
                 }
-                case 1 -> {
-                    // ourRandom < peerRandom: send INIT_ACK, calculate logs, send logs, wait for guide.
-                    this.syncInfo.activate();
-                    guide = this.inferiorRandomHandler();
-                }
+                // ourRandom < peerRandom: send INIT_ACK, calculate logs, send logs, wait for guide.
+                case 1 -> guide = this.inferiorRandomHandler();
+
                 case 2 -> {
                     // found INIT_ACK - wait for logs, get logs, calculate guide, send guide.
-                    this.syncInfo.activate();
                     this.handlerPort = reqStatus.get(1);
                     guide = this.superiorRandomHandler();
                 }
@@ -218,13 +200,17 @@ public class SyncHandler implements Runnable{
             // If guide can be created, go to next phase.
             if (guide != null)
                 nextStep = true;
+            else
+                this.syncInfo.deactivate();
 
-            // TODO: Insert some waiting time? Maybe only check pending requests if anything changed...
+            // TODO: Insert some waiting time? Check pending requests only if anything changed...
+            // TODO: Abort sync in case of no response for a given ammount of time.
         }
 
         // Check if socket is closed: something might have failed.
         if (!this.syncSocket.isClosed() && guide != null) {
-            TransferHandler transferHandler = new TransferHandler(MAX_THREADS_PER_TRANSFER, guide, this.syncInfo.getFilepath(), this.syncSocket, this.syncInfo.getIpAddress(), this.handlerPort, this.isBiggerNumber);
+            this.syncInfo.activate();
+            TransferHandler transferHandler = new TransferHandler(5, guide, this.syncInfo.getFilepath(), this.syncSocket, this.syncInfo.getIpAddress(), this.handlerPort, this.isBiggerNumber);
             transferHandler.processTransfers();
         }
 
@@ -234,21 +220,29 @@ public class SyncHandler implements Runnable{
 
     @Override
     public void run() {
-        // Create Socket.
         try{
+            // Create Socket.
             this.syncSocket = new DatagramSocket();
+
+            // Sync folders with the other peer until the socket closes.
+            while(!this.syncSocket.isClosed()){
+                this.syncOnce();
+                // TODO: write into syncInfo file?
+            }
+
+            // Termination message.
+            System.err.println("Sync " + this.syncInfo.getId() + " terminated.");
         }
         catch (SocketException e) {
             System.out.println("Failed to create socket in sync " + this.syncInfo.getId() + ".");
             e.printStackTrace();
         }
+    }
 
-        while(!this.syncSocket.isClosed()){
-            this.syncOnce();
-            // TODO: write into syncInfo file a.k.a update syncinfo file.
-        }
-
-        // Termination message.
-        System.err.println("Sync " + this.syncInfo.getId() + " terminated.");
+    public SyncInfo getInfo(){
+        return this.syncInfo.clone();
+    }
+    public void closeSocket(){
+        this.syncSocket.close();
     }
 }
