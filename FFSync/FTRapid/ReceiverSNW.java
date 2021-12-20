@@ -78,6 +78,7 @@ public class ReceiverSNW {
         // In case we're waiting to receive a LOG or Guide, we won't send RQF packets...RQF is only used for files...
         FTRapidPacket meta_FTRapidPacket = null;
         boolean timedOut = true;
+        int timeOutCounter = 3; // TODO: CHEGA?
         while (timedOut) {
             try     {
                 // Send RQF packet if FILE mode is the current mode.
@@ -109,7 +110,14 @@ public class ReceiverSNW {
             }
             catch (SocketTimeoutException exception) {
                 // If we don't get META, prepare to resend RQF.
-                System.out.println("Server not responding to RQF.");
+                if(timeOutCounter > 0) {
+                    timeOutCounter--;
+                    System.out.println("Server not responding to RQF.");
+                }
+                else {
+                    timedOut = false;
+                    System.out.println("Timeout limit exceeded.");
+                }
             } catch (IOException e) {
                 if(this.socket.isClosed()) {
                     System.out.println("Receive Socket closed prematurely.");
@@ -144,7 +152,7 @@ public class ReceiverSNW {
             DatagramPacket ACK = FTRapidPacket.getACKPacket(ADDRESS, PORT, prevSeqNum);
 
             // First ACK is for the META packet (if index == 0)
-            int timeOutCounter = 3;
+            timeOutCounter = 3;
             timedOut = true;
             while (timedOut) {
                 byte[] buf = new byte[FTRapidPacket.BUFFER_SIZE];
@@ -177,7 +185,6 @@ public class ReceiverSNW {
                         timedOut = false;
                         System.out.println("Timeout limit exceeded.");
                     }
-
                 }
                 catch (IOException e) {
                     e.printStackTrace();

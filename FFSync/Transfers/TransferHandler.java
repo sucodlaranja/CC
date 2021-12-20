@@ -11,7 +11,6 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Handle the guide.
@@ -82,7 +81,6 @@ public class TransferHandler {
         @Override
         public void run() {
             String filename;
-            filesWaitingRequestPool.sleepIfEmpty(); // sleeps if there is no request to ear (set is empty)
 
             System.out.println("transfer_handler_listener_online"); // TODO: REMOVE
 
@@ -216,9 +214,25 @@ public class TransferHandler {
 
         // TODO :ESPERAR ALGUM TEMPO ???
 
+        System.out.println("maxFiles:" + (max_files));
+
+
+        // checkar set..
+        // TODO: será que é worth it?
+        /*
+        int s;
+        while((s = filesWaitingRequestPool.size()) > 0){
+            sleep(5);
+            if(s == filesWaitingRequestPool.size()) break;
+        }
+        */
+
         // Waits for all threads to finish
         threadPool.waitForAllThreadsToFinish(max_files);
 
+        System.out.println("maxFiles:" + (max_files));
+
+        System.out.println("vou mandar acordar este gajo-----------------------");
         filesWaitingRequestPool.setFinish();
         try {
             listener.join();
@@ -227,7 +241,6 @@ public class TransferHandler {
             e.printStackTrace();
         }
 
-        System.out.println("maxFiles:" + (max_files - filesWaitingRequestPool.size()));
 
         this.checkProcessTransfers = true;
     }

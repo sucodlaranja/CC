@@ -33,7 +33,8 @@ public class ThreadPool{
     public void waitForAllThreadsToFinish(int maxThreadsAllowed) {
         lock.lock();
         try {
-            while (nMaxThreads != maxThreadsAllowed) condition.await();
+            while (nMaxThreads != maxThreadsAllowed)
+                condition.await();
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {

@@ -92,6 +92,7 @@ public class SenderSNW {
 
         // Send META packet and wait for approval.
         boolean timedOut = true;
+        int timeOutCounter = 3; // TODO: CHEGA?
         while(timedOut) {
             try {
                 // Send META packet.
@@ -116,7 +117,14 @@ public class SenderSNW {
             }
             catch (SocketTimeoutException exception) {
                 // If we don't get an ack, prepare to resend metadata.
-                System.out.println("Server not responding to metadata.");
+                if(timeOutCounter > 0){
+                    timeOutCounter--;
+                    System.out.println("Server not responding to metadata.");
+                }
+                else{
+                    timedOut = false;
+                    System.out.println("Timeout limit exceeded.");
+                }
             }
             catch (IOException e) {
                 e.printStackTrace();
@@ -128,7 +136,7 @@ public class SenderSNW {
         // Send data to the other peer.
         int seqNum = 0; // sequence number can only be 0/1.
         for (byte[] packData : allPackets) {
-            int timeOutCounter = 5; // TODO: Is 5 timeouts limit a good number?
+            timeOutCounter = 3; // TODO: Is 5 timeouts limit a good number?
 
             // Create and send data packet.
             DatagramPacket dataPacket = FTRapidPacket.getDATAPacket(this.ADDRESS, this.PORT, seqNum, packData);
@@ -158,9 +166,15 @@ public class SenderSNW {
                 }
                 catch (SocketTimeoutException exception) {
                     // If we don't get an ack, prepare to resend sequence number
-                    System.out.println("Timeout. Packet will be resent.");
-                    if(timeOutCounter > 0) timeOutCounter--;
-                    else timedOut = false;
+                    if(timeOutCounter > 0){
+                        timeOutCounter--;
+                        System.out.println("Timeout. Packet will be resent.");
+                    }
+                    else{
+                        timedOut = false;
+                        System.out.println("Timeout limit exceeded.");
+                        // TODO: PONHO ME A ANDAR E MANDO O FICHEIRO CA GAITA?
+                    }
                 }
                 catch (IOException e){
                     e.printStackTrace();
