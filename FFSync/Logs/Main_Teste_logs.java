@@ -11,11 +11,32 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
 import java.util.Comparator;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 
 public class Main_Teste_logs {
     public static void main(String[] args) throws IOException {
+
+        LogsManager l1 = new LogsManager("C:\\Users\\jorge\\OneDrive\\Ambiente de Trabalho\\aa");
+        LogsManager l2 = new LogsManager("C:\\Users\\jorge\\OneDrive\\Ambiente de Trabalho\\bb");
+
+        Map<String, LogsRecord> logs = l2.getLogs();
+
+        long h = 2147483647;
+
+        for(Map.Entry<String,LogsRecord> recordEntry : logs.entrySet())
+            System.out.println(recordEntry.getKey() + " -> " + recordEntry.getValue().getFileTime() + " " + (recordEntry.getValue().getChecksum()));
+
+        Queue<TransferLogs> guide = l1.compareLogs(l2.getLogs()).getGuide();
+
+        for(TransferLogs transferLogs : guide)
+            System.out.println("-------" + transferLogs.getFileName() + "         " + transferLogs.isSender());
+
+
+
+
+        /*
         String pasta = "HistorySaved";
 
         try {
@@ -63,10 +84,10 @@ public class Main_Teste_logs {
         catch (IOException e) {
             e.printStackTrace();
         }
-
-         */
         Files.list(Paths.get(pasta)).map(Path :: toFile).forEach(File :: delete);
         Files.delete(Paths.get(pasta));
+
+        */
 
     }
 }

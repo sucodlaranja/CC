@@ -10,7 +10,7 @@ public class Guide {
 
     private final Queue<TransferLogs> guide;
 
-    public Guide(Map<String, FileTime> alfa, Map<String, FileTime> beta) {
+    public Guide(Map<String, LogsRecord> alfa, Map<String, LogsRecord> beta) {
         this.guide = compareLogs(alfa, beta);
     }
 
@@ -40,12 +40,12 @@ public class Guide {
     }
 
     // Compare two LogsManager and generate guide.
-    private Queue<TransferLogs> compareLogs(Map<String, FileTime> alfa, Map<String, FileTime> beta) {
+    private Queue<TransferLogs> compareLogs(Map<String, LogsRecord> alfa, Map<String, LogsRecord> beta) {
         // Create guide
         Queue<TransferLogs> listOfTransfers = new LinkedList<>();
 
         // Compares all the files that I have on my logs
-        for(Map.Entry<String, FileTime> file:  alfa.entrySet()){
+        for(Map.Entry<String, LogsRecord> file:  alfa.entrySet()){
             // Compares his file and mine
             if (beta.containsKey(file.getKey())){
                 int comp = beta.remove(file.getKey()).compareTo(file.getValue());

@@ -5,14 +5,9 @@ package Logs;
  */
 public record TransferLogs(String fileName, boolean sender) {
 
-    // TODO: Não se percebe nada disto...que raio quer dizer o booleano?
+    // Name of the file
+    public String getFileName() {return fileName;}
 
-    public String getFileName() {
-        return fileName;
-    }
-
-    public boolean isSender() {
-        return sender;
-    }
-
+    // Indicates if this file is to be sent or received
+    public boolean isSender() {return sender;}
 }
