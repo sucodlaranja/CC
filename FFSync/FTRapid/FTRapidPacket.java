@@ -246,7 +246,7 @@ public class FTRapidPacket {
         }
     }
 
-    public static FTRapidPacket sendAndWaitLoop(DatagramSocket socket, DatagramPacket packet, int OPCODE, int MODE, int seqNum){
+    public static FTRapidPacket sendAndWaitLoop(DatagramSocket socket, DatagramPacket packet, int OPCODE, int MODE, int seqNum, boolean diff){
         int timeOutCounter = 3; // TODO: CHEGA?
 
         FTRapidPacket ftRapidPacket = null;
@@ -259,10 +259,17 @@ public class FTRapidPacket {
             if(received != null) {
                 ftRapidPacket = new FTRapidPacket(received, MODE);
 
-                // If we receive a META, stop the while loop. Check if MODE is correct.
-                if (ftRapidPacket.getOPCODE() == OPCODE
+                if (!diff
+                        && ftRapidPacket.getOPCODE() == OPCODE
                         && ftRapidPacket.getTransferMODE() == MODE
                         && ftRapidPacket.getSequenceNumber() == seqNum)
+                {
+                    notOver = false;
+                }
+                else if(diff
+                        && ftRapidPacket.getOPCODE() == OPCODE
+                        && ftRapidPacket.getTransferMODE() == MODE
+                        && ftRapidPacket.getSequenceNumber() != seqNum)
                 {
                     notOver = false;
                 }

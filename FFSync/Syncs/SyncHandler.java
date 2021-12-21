@@ -79,7 +79,7 @@ public class SyncHandler implements Runnable{
         // Create INIT_ACK packet (default port is LISTENER).
         DatagramPacket init_ack = FTRapidPacket.getINITACKPacket(this.syncInfo);
 
-        FTRapidPacket ackPacket = FTRapidPacket.sendAndWaitLoop(this.syncSocket, init_ack, FTRapidPacket.ACK, FTRapidPacket.LOGS, FTRapidPacket.CONTROL_SEQ_NUM);
+        FTRapidPacket ackPacket = FTRapidPacket.sendAndWaitLoop(this.syncSocket, init_ack, FTRapidPacket.ACK, FTRapidPacket.LOGS, FTRapidPacket.CONTROL_SEQ_NUM, false);
         if(ackPacket != null)
             this.handlerPort = ackPacket.getPort();
         else

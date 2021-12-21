@@ -73,7 +73,7 @@ public class ReceiverSNW {
         // Send RQF packet and wait for approval a.k.a. META packet.
         // Save META packet.
         // In case we're waiting to receive a LOG or Guide, we won't send RQF packets...RQF is only used for files...
-        FTRapidPacket meta_FTRapidPacket = FTRapidPacket.sendAndWaitLoop(this.socket, packet2beSent, FTRapidPacket.META ,this.MODE, FTRapidPacket.CONTROL_SEQ_NUM);
+        FTRapidPacket meta_FTRapidPacket = FTRapidPacket.sendAndWaitLoop(this.socket, packet2beSent, FTRapidPacket.META ,this.MODE, FTRapidPacket.CONTROL_SEQ_NUM, false);
         if(meta_FTRapidPacket == null)
             return null;
 
@@ -94,32 +94,15 @@ public class ReceiverSNW {
         // Wait and receive DATA packets and send ACK packets with respective sequence numbers.
         int index, prevSeqNum;
         for (index = 0, prevSeqNum = 1; index < N_PACKETS; ++index) {
-            // First ACK is for the META packet (if index == 0)
-            DatagramPacket ACK = FTRapidPacket.getACKPacket(ADDRESS, PORT, prevSeqNum);
-            int timeOutCounter = 3;
-            boolean timedOut = true;
-            while (timedOut) {
-                DatagramPacket received = FTRapidPacket.sendAndWait(this.socket, ACK);
+            DatagramPacket ack_packet = FTRapidPacket.getACKPacket(ADDRESS, PORT, prevSeqNum);
 
-                if(received != null) {
-                    // Check and save packet.
-                    FTRapidPacket ftRapidPacket = new FTRapidPacket(received, this.MODE);
-                    if(ftRapidPacket.getOPCODE() == FTRapidPacket.DATA
-                            && ftRapidPacket.getSequenceNumber() != prevSeqNum)
-                    {
-                        allPackets.add(index, ftRapidPacket.getDataBytes().clone());
-                        timedOut = false;
+            FTRapidPacket data = FTRapidPacket.sendAndWaitLoop(this.socket, ack_packet, FTRapidPacket.DATA, this.MODE, prevSeqNum, true);
 
-                        System.out.println("Received packet " + index + "/" + (N_PACKETS-1)); // TODO: REMOVE
-                    }
-                }
-                else if (timeOutCounter > 0) {
-                    timeOutCounter--;
-                }
-                else{
-                    System.out.println("Timeout limit exceeded.");
-                    return null;
-                }
+            if(data == null)
+                return null;
+            else{
+                allPackets.add(index, data.getDataBytes().clone());
+                System.out.println("Received packet " + index + "/" + (N_PACKETS-1)); // TODO: REMOVE
             }
 
             // Change previous sequence number.

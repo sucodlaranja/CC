@@ -98,7 +98,7 @@ public class SenderSNW {
 
         DatagramPacket metaPacket = FTRapidPacket.getMETAPacket(ADDRESS, PORT, this.MODE, dataToSend.length, this.FILEPATH);
 
-        if(FTRapidPacket.sendAndWaitLoop(this.socket, metaPacket, FTRapidPacket.ACK, this.MODE, 1) == null)
+        if(FTRapidPacket.sendAndWaitLoop(this.socket, metaPacket, FTRapidPacket.ACK, this.MODE, 1, false) == null)
             return;
 
         int counter = 0;
@@ -107,7 +107,7 @@ public class SenderSNW {
         for (byte[] packData : allPackets) {
 
             DatagramPacket dataPacket = FTRapidPacket.getDATAPacket(this.ADDRESS, this.PORT, seqNum, packData);
-            if(FTRapidPacket.sendAndWaitLoop(this.socket, dataPacket, FTRapidPacket.ACK, this.MODE, seqNum) == null)
+            if(FTRapidPacket.sendAndWaitLoop(this.socket, dataPacket, FTRapidPacket.ACK, this.MODE, seqNum, false) == null)
                 return;
 
             System.out.println("Sended packet " + counter + "/" + (allPackets.size() - 1)); // TODO: REMOVE
