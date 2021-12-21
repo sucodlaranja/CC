@@ -3,6 +3,7 @@ package FTRapid;
 import java.io.IOException;
 import java.net.*;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,8 +30,8 @@ public class SenderSNW {
     private final InetAddress ADDRESS;
     private final int PORT;
 
-    // Amount of maximum timeouts before exiting.
-    private final int timeOutCounter;               // TODO: CHEGA 3?
+    // Check if sender constructor did its job correctly.
+    private boolean allOK;
 
     // Sending File
     public SenderSNW(InetAddress address, int PORT, String filepath){
@@ -39,6 +40,8 @@ public class SenderSNW {
         int localMode = FTRapidPacket.ERROR;
         String localPath = "";
         byte[] localData = null;
+        allOK = false;
+
 
         // Creating socket and reading file...
         try{
@@ -46,6 +49,7 @@ public class SenderSNW {
             localData = Files.readAllBytes(Paths.get( filepath ));
             localPath = filepath;
             localMode = FTRapidPacket.FILE;
+            allOK = true; // only ok if exceptions were not thrown.
         }
         catch (SocketException e){
             System.out.println("Failed to create socket.");
@@ -54,6 +58,9 @@ public class SenderSNW {
         catch (OutOfMemoryError e){
             System.out.println("File is to big to be transferred.");
             e.printStackTrace();
+        }
+        catch (NoSuchFileException e){
+            System.out.println("File " + filepath + " was not found.");
         }
         catch (IOException e){
             e.printStackTrace();
@@ -65,7 +72,6 @@ public class SenderSNW {
             this.socket = localSocket;
             this.ADDRESS = address;
             this.PORT = PORT;
-            this.timeOutCounter = 3;
         }
     }
 
@@ -77,39 +83,35 @@ public class SenderSNW {
         this.dataToSend = data.clone();
         this.MODE = mode;
         this.FILEPATH = "";
-        this.timeOutCounter = 3;
+        this.allOK = true;
     }
 
+    // Send file to another peer, after sending META packet.
+    // TODO: RETURN SOMETHING USEFUL -> sent/not sent, stats...
     public void send(){
+        // Constructor failed.
+        if(!allOK)
+            return;
+
         // Let's split the byte[] dataToSend into many packets (use packet size determined in FTRapidPacket class).
         List<byte[]> allPackets = split(this.dataToSend);
 
-        // Create META packet.
         DatagramPacket metaPacket = FTRapidPacket.getMETAPacket(ADDRESS, PORT, this.MODE, dataToSend.length, this.FILEPATH);
 
-        // Send META packet and wait for approval.
-        List<Object> workerResult =
-                FTRapidPacket.worker(this.socket, metaPacket, timeOutCounter, this.MODE, FTRapidPacket.ACK, 1); // TODO: CHECK RETURN VALUE
+        if(FTRapidPacket.sendAndWaitLoop(this.socket, metaPacket, FTRapidPacket.ACK, this.MODE, 1) == null)
+            return;
 
-        // Check if we should continue.
-        if(workerResult.size() < 1 || workerResult.get(0).equals(1)){
-            return; // TODO: GTFO
-        }
-
+        int counter = 0;
         // Send data to the other peer.
         int seqNum = 0; // sequence number can only be 0/1.
         for (byte[] packData : allPackets) {
-            // Create data packet.
+
             DatagramPacket dataPacket = FTRapidPacket.getDATAPacket(this.ADDRESS, this.PORT, seqNum, packData);
+            if(FTRapidPacket.sendAndWaitLoop(this.socket, dataPacket, FTRapidPacket.ACK, this.MODE, seqNum) == null)
+                return;
 
-            // Send data packet and wait for ACK. Do this in a stop-and-wait manner.
-            workerResult =
-                    FTRapidPacket.worker(this.socket, dataPacket, timeOutCounter, this.MODE, FTRapidPacket.ACK, seqNum); // TODO: CHECK RETURN VALUE
-
-            // Check if we should continue.
-            if(workerResult.size() < 1 || workerResult.get(0).equals(1)){
-                return; // TODO: GTFO
-            }
+            System.out.println("Sended packet " + counter + "/" + (allPackets.size() - 1)); // TODO: REMOVE
+            counter++;// TODO: REMOVE
 
             // Change sequence number.
             seqNum = seqNum == 0? 1 : 0;
@@ -118,6 +120,9 @@ public class SenderSNW {
         // Close this socket only if in FILE mode - not going to be used again.
         if(this.MODE == FTRapidPacket.FILE)
             socket.close();
+
+
+        System.out.println(this.FILEPATH + " was sent."); // TODO: REMOVE
 
         // ALL IS OK.
     }

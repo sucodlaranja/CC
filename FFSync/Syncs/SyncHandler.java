@@ -10,6 +10,8 @@ import Logs.Guide;
 import Logs.LogsManager;
 import Logs.TransferLogs;
 import Transfers.TransferHandler;
+
+import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.net.*;
 import java.util.List;
@@ -74,44 +76,14 @@ public class SyncHandler implements Runnable{
         if(logsManager == null)
             return null; // ABORT SYNC = null.
 
-
-
         // Create INIT_ACK packet (default port is LISTENER).
         DatagramPacket init_ack = FTRapidPacket.getINITACKPacket(this.syncInfo);
 
-        // Sends INIT_ACK and waits for ACK.
-        boolean ack_received = false;
-        while(!ack_received){
-            try {
-                // Sending init_ack packet to peer listener.
-                this.syncSocket.send(init_ack);
-
-                // Create buffer and receive ack packet.
-                byte[] ack_buffer = new byte[FTRapidPacket.ACK_BUFFER];
-                DatagramPacket ack_packet = new DatagramPacket(ack_buffer, ack_buffer.length);
-
-                // Set timeout to receive ACK packet. ACK has to arrive while we wait...
-                this.syncSocket.setSoTimeout(4000);
-
-                // Wait for ack (if timeout is reached, restart loop).
-                this.syncSocket.receive(ack_packet);
-
-                // Check packet is ACK and sequence number is CONTROL_SEQ_NUM
-                FTRapidPacket ftRapidPacket = new FTRapidPacket(ack_packet, FTRapidPacket.ERROR);
-                if(ftRapidPacket.getOPCODE() == FTRapidPacket.ACK
-                    && ftRapidPacket.getSequenceNumber() == FTRapidPacket.CONTROL_SEQ_NUM)
-                {
-                    ack_received = true;
-                    this.handlerPort = ack_packet.getPort();
-                }
-            }
-            catch (SocketTimeoutException e){
-                System.out.println("Waiting for ACK after INIT_ACK timeout.");
-            }
-            catch (IOException e){
-                e.printStackTrace();
-            }
-        }
+        FTRapidPacket ackPacket = FTRapidPacket.sendAndWaitLoop(this.syncSocket, init_ack, FTRapidPacket.ACK, FTRapidPacket.LOGS, FTRapidPacket.CONTROL_SEQ_NUM);
+        if(ackPacket != null)
+            this.handlerPort = ackPacket.getPort();
+        else
+            return null;
 
         // Serialize logs.
         byte[] logs = logsManager.getBytes();
@@ -147,9 +119,6 @@ public class SyncHandler implements Runnable{
         ReceiverSNW receiverSNW = new ReceiverSNW(this.syncSocket, FTRapidPacket.LOGS, this.getInfo().getIpAddress(), this.handlerPort);
         byte[] logsBytes = receiverSNW.requestAndReceive();
 
-        if(logsBytes == null)
-            return null;
-
         // Create LogsManager instance.
         LogsManager beta = new LogsManager(logsBytes);
 
@@ -178,6 +147,9 @@ public class SyncHandler implements Runnable{
     }
 
     private void syncOnce() {
+        System.out.println("one_sync_started"); // TODO: REMOVE
+
+
         // Initiate sync
         boolean nextStep = false;
         Guide guide = null;
@@ -227,6 +199,9 @@ public class SyncHandler implements Runnable{
         if (!this.syncSocket.isClosed() && (guide != null) && (guide.getGuide().size() > 0)) {
             this.syncInfo.activate();
 
+            for(TransferLogs tl : guide.getGuide())
+                System.out.println("Filename: " + tl.getFileName() + " b=" + tl.isSender());
+
             // History
             this.syncHistory.updateGuide(guide.getGuide());
             try {
@@ -239,7 +214,7 @@ public class SyncHandler implements Runnable{
             transferHandler.processTransfers();
 
         }
-
+        System.out.println("one_sync_finished"); // TODO: REMOVE
     }
 
     @Override
