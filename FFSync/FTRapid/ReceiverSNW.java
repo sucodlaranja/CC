@@ -1,7 +1,5 @@
 package FTRapid;
 
-
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -25,6 +23,9 @@ public class ReceiverSNW {
     private final String filepath;
     private final String filename;
 
+    // Amount of maximum timeouts before exiting.
+    private final int timeOutCounter; // TODO: CHEGAM 3?
+
     // Requesting and receiving files.
     public ReceiverSNW(InetAddress address, int handlerPort, String filepath, String filename){
 
@@ -42,10 +43,10 @@ public class ReceiverSNW {
             this.filepath = filepath;
             this.filename = filename;
             this.MODE = FTRapidPacket.FILE;
+            this.ADDRESS = address;
+            this.PORT = handlerPort;
+            this.timeOutCounter = 3;
         }
-
-        this.ADDRESS = address;
-        this.PORT = handlerPort;
     }
 
     // LOGS and GUIDE.
@@ -56,6 +57,7 @@ public class ReceiverSNW {
         this.PORT = handlerPort;
         this.filename = "";
         this.filepath = "";
+        this.timeOutCounter = 3;
     }
 
     // Request the file to the other peer. Sending packet to the transfer handler listener.
@@ -63,80 +65,32 @@ public class ReceiverSNW {
     // TODO: simplify code -> "while(timeout){}" piece of code is similar...
     public byte[] requestAndReceive() {
 
-        // Create RQF (request file) packet. Only useful if MODE=FILE. PORT corresponds to listener port.
-        DatagramPacket RQF = null;
+        // Create packet to be sent: either a RQF or a ACK.
+        DatagramPacket packet2bSent = null;
         if(this.MODE == FTRapidPacket.FILE)
-            RQF = FTRapidPacket.getRQFPacket(this.ADDRESS, this.PORT, this.filename);
-
-        // Create ACK packet. Useful if MODE=LOGS. We need to aknowledge INIT_ACK packet and wait for META.
-        DatagramPacket ACK_CONTROL = null;
-        if(this.MODE == FTRapidPacket.LOGS)
-            ACK_CONTROL = FTRapidPacket.getACKPacket(this.ADDRESS, this.PORT, FTRapidPacket.CONTROL_SEQ_NUM);
-
-        // Send RQF packet and wait for approval a.k.a. META packet.
-        // Save META packet.
-        // In case we're waiting to receive a LOG or Guide, we won't send RQF packets...RQF is only used for files...
-        FTRapidPacket meta_FTRapidPacket = null;
-        boolean timedOut = true;
-        int timeOutCounter = 3; // TODO: CHEGA?
-        while (timedOut) {
-            try     {
-                // Send RQF packet if FILE mode is the current mode.
-                if(this.MODE == FTRapidPacket.FILE)
-                    socket.send(RQF);
-                // Aknowledge INIT_ACK with a control ACK and wait for META.
-                else if(this.MODE == FTRapidPacket.LOGS)
-                    socket.send(ACK_CONTROL);
-
-                // Create a byte array to receive META.
-                byte[] receiveData = new byte[FTRapidPacket.BUFFER_SIZE];
+            // Create RQF (request file) packet. Only useful if MODE=FILE. PORT corresponds to listener port.
+            packet2bSent = FTRapidPacket.getRQFPacket(this.ADDRESS, this.PORT, this.filename);
+        else if(this.MODE == FTRapidPacket.LOGS)
+            // Create ACK packet. Useful if MODE=LOGS. We need to aknowledge INIT_ACK packet and wait for META.
+            packet2bSent = FTRapidPacket.getACKPacket(this.ADDRESS, this.PORT, FTRapidPacket.CONTROL_SEQ_NUM);
 
 
-                // Receive the server's packet
-                DatagramPacket received = new DatagramPacket(receiveData, receiveData.length);
-                socket.setSoTimeout(5000); // TODO: TIMEOUT...take outside loop
-                socket.receive(received);
+        // Save META packet (meta packet have seqNum=1).
+        List<Object> workerResult =
+                FTRapidPacket.worker(this.socket, packet2bSent, this.timeOutCounter, this.MODE, FTRapidPacket.META, 1); // TODO: CHECK RETURN VALUE
 
-                // Get the message opcode from server's packet.
-                // MODE=ERROR because we will find out wich mode the presumed META packet has.
-                meta_FTRapidPacket = new FTRapidPacket(received, FTRapidPacket.ERROR);
-
-                // If we receive a META, stop the while loop. Check if MODE is correct.
-                if (meta_FTRapidPacket.getOPCODE() == FTRapidPacket.META
-                    && meta_FTRapidPacket.getTransferMODE() == this.MODE)
-                {
-                    timedOut = false;
-                }
-            }
-            catch (SocketTimeoutException exception) {
-                // If we don't get META, prepare to resend RQF.
-                if(timeOutCounter > 0) {
-                    timeOutCounter--;
-                    System.out.println("Server not responding to RQF.");
-                }
-                else {
-                    timedOut = false;
-                    System.out.println("Timeout limit exceeded.");
-                }
-            } catch (IOException e) {
-                if(this.socket.isClosed()) {
-                    System.out.println("Receive Socket closed prematurely.");
-                    return null;
-                }
-                else
-                    e.printStackTrace();
-            }
+        // Check if we should continue.
+        FTRapidPacket meta_FTRapidPacket;
+        if(workerResult.size() > 1 && workerResult.get(0).equals(0)){
+            meta_FTRapidPacket = (FTRapidPacket) workerResult.get(1);
         }
+        else
+            return null; // TODO: GTFO
 
         // META info (mode, filesize and filename if needed) is in ftRapidPacket. General info below.
         int FILESIZE = meta_FTRapidPacket.getFilesize();
         int N_PACKETS = (int) Math.ceil((double) FILESIZE / FTRapidPacket.DATA_CONTENT_SIZE);
         int LAST_PACKET_DATA_SIZE = FILESIZE - (N_PACKETS - 1) * FTRapidPacket.DATA_CONTENT_SIZE;
-
-        // TODO: REMOVE
-        System.out.println("filesize=" + FILESIZE);
-        System.out.println("npackets=" + N_PACKETS);
-        System.out.println("lastpacket=" + LAST_PACKET_DATA_SIZE);
 
         // All received byte packets will be here.
         List<byte[]> allPackets = new ArrayList<>(N_PACKETS);
@@ -151,48 +105,20 @@ public class ReceiverSNW {
             // ACK packet - respecting sequence numbers.
             DatagramPacket ACK = FTRapidPacket.getACKPacket(ADDRESS, PORT, prevSeqNum);
 
-            // First ACK is for the META packet (if index == 0)
-            timeOutCounter = 3;
-            timedOut = true;
-            while (timedOut) {
-                byte[] buf = new byte[FTRapidPacket.BUFFER_SIZE];
-                DatagramPacket receivedPacket = new DatagramPacket(buf, buf.length);
-                try{
-                    // Send ACK for previous data packet.
-                    this.socket.send(ACK);
-
-                    // Wait and receive data packet.
-                    this.socket.setSoTimeout(3000); // TODO: TIMEOUT...maybe put it outside loops
-                    this.socket.receive(receivedPacket);
-
-                    // Check and save packet.
-                    FTRapidPacket ftRapidPacket = new FTRapidPacket(receivedPacket, this.MODE);
-                    if(ftRapidPacket.getOPCODE() == FTRapidPacket.DATA
-                            && ftRapidPacket.getSequenceNumber() != prevSeqNum)
-                    {
-                        allPackets.add(index, ftRapidPacket.getDataBytes().clone());
-                        timedOut = false;
-
-                        System.out.println("Received packet " + index + "/" + (N_PACKETS-1)); // TODO: REMOVE
-                    }
-                }
-                catch (SocketTimeoutException e){
-                    if(timeOutCounter > 0) {
-                        timeOutCounter--;
-                        System.out.println("Timeout while waiting for data packet. Resending ACK.");
-                    }
-                    else {
-                        timedOut = false;
-                        System.out.println("Timeout limit exceeded.");
-                    }
-                }
-                catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
             // Change previous sequence number.
             prevSeqNum = prevSeqNum == 0? 1 : 0;
+
+            workerResult =
+                    FTRapidPacket.worker(this.socket, ACK, this.timeOutCounter, this.MODE, FTRapidPacket.DATA, prevSeqNum);
+
+            // Check if we should continue.
+            if(workerResult.size() > 1 && workerResult.get(0).equals(0)){
+                FTRapidPacket receivedFTRapidPacket = (FTRapidPacket) workerResult.get(1);
+                allPackets.add(index, receivedFTRapidPacket.getDataBytes().clone());
+            }
+            else
+                return null; // TODO: GTFO
+
         }
 
         // Acknowledge last data packet - only once.
@@ -229,8 +155,6 @@ public class ReceiverSNW {
                 e.printStackTrace();
             }
         }
-
-        System.out.println(this.filepath + " was received."); // TODO: REMOVE
 
         return fileBytes.clone();
     }

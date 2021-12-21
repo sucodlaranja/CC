@@ -147,6 +147,9 @@ public class SyncHandler implements Runnable{
         ReceiverSNW receiverSNW = new ReceiverSNW(this.syncSocket, FTRapidPacket.LOGS, this.getInfo().getIpAddress(), this.handlerPort);
         byte[] logsBytes = receiverSNW.requestAndReceive();
 
+        if(logsBytes == null)
+            return null;
+
         // Create LogsManager instance.
         LogsManager beta = new LogsManager(logsBytes);
 
@@ -175,9 +178,6 @@ public class SyncHandler implements Runnable{
     }
 
     private void syncOnce() {
-        System.out.println("one_sync_started"); // TODO: REMOVE
-
-
         // Initiate sync
         boolean nextStep = false;
         Guide guide = null;
@@ -242,7 +242,7 @@ public class SyncHandler implements Runnable{
             transferHandler.processTransfers();
 
         }
-        System.out.println("one_sync_finished"); // TODO: REMOVE
+
     }
 
     @Override

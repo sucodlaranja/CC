@@ -2,10 +2,12 @@ package FTRapid;
 
 import Listener.Listener;
 import Syncs.SyncInfo;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+
+import java.io.IOException;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Constructor receives datagram packet and transforms byte stream to readable and accessible information.
@@ -27,8 +29,7 @@ public class FTRapidPacket {
     public static final int BUFFER_SIZE = 1024;
     public static final int ACK_BUFFER = 8;
 
-    // This is the sequence number used to aknowledge a control packet.
-    // DATA packets are aknowledge with sequence numbers 0/1.
+    // DATA and ACK use sequence numbers 0/1. META uses sequence number 1. Other packets use CONTROL_SEQ_NUM.
     public static final int CONTROL_SEQ_NUM = 2;
 
     public final static int ERROR = -1;
@@ -45,7 +46,6 @@ public class FTRapidPacket {
     private final int transferMODE;
     private final int filesize;
     private final int sequenceNumber;
-    private final String filepath;
     private final String filename;
     private final byte[] dataBytes;
 
@@ -55,8 +55,7 @@ public class FTRapidPacket {
         String local_filename = "";
         int local_transferMODE = knownMode;
         int local_filesize = -1;
-        String local_filepath = "";
-        int local_sequenceNumber = -1;
+        int local_sequenceNumber = CONTROL_SEQ_NUM;
         byte[] local_dataBytes = null;
         InetAddress local_address = rcvPacket.getAddress();
 
@@ -84,15 +83,14 @@ public class FTRapidPacket {
             // 2@filename@
             local_filename = data[1];
         }
-        else if(tempOpcode == META){
-            local_filename = data[1];
+        else if(tempOpcode == META && data.length > 2){
+            local_sequenceNumber = 1;
             local_transferMODE = Integer.parseInt(data[1]);
             local_filesize = Integer.parseInt(data[2]);
-            local_filepath = local_transferMODE == FILE ? data[3] : "";
+            local_filename = (local_transferMODE == FILE) && (data.length > 3) ? data[3] : "";
         }
         else if(tempOpcode == DATA){
-            if(local_transferMODE == FILE)
-                local_sequenceNumber = Integer.parseInt(data[1]);
+            local_sequenceNumber = Integer.parseInt(data[1]);
             local_dataBytes = dataStr.split("@", 3)[2].getBytes(StandardCharsets.UTF_8);
         }
         else if(tempOpcode == RQF){
@@ -107,7 +105,6 @@ public class FTRapidPacket {
         this.randomNumber = local_randomNumber;
         this.port = rcvPacket.getPort();
         this.filename = local_filename;
-        this.filepath = local_filepath;
         this.transferMODE = local_transferMODE;
         this.filesize = local_filesize;
         this.sequenceNumber = local_sequenceNumber;
@@ -124,6 +121,19 @@ public class FTRapidPacket {
             this.peerAddress = local_address;
             this.key = local_key;
         }
+    }
+
+    public FTRapidPacket(FTRapidPacket ftRapidPacket){
+        this.peerAddress = ftRapidPacket.getPeerAddress();
+        this.key = ftRapidPacket.getKey();
+        this.OPCODE = ftRapidPacket.getOPCODE();
+        this.randomNumber = ftRapidPacket.getRandomNumber();
+        this.port = ftRapidPacket.getPort();
+        this.transferMODE = ftRapidPacket.getTransferMODE();
+        this.filesize = ftRapidPacket.getFilesize();
+        this.sequenceNumber = ftRapidPacket.getSequenceNumber();
+        this.filename = ftRapidPacket.getFilename();
+        this.dataBytes = ftRapidPacket.getDataBytes();
     }
 
     public static Integer calculateFTRapidPacketKey(String filename, InetAddress address){
@@ -211,6 +221,73 @@ public class FTRapidPacket {
         byte[] packetB = (RQF + "@" + filename + "@").getBytes(StandardCharsets.UTF_8);
         return new DatagramPacket(packetB, packetB.length, ADDRESS, PORT);
     }
+
+
+
+
+    // Worker - Does all the work. Used in sending and receiving messages.
+    public static List<Object> worker(DatagramSocket socket, DatagramPacket packet, int timeOutCounter, int MODE, int OPCODE, int seqNum){
+        // Return value = List
+        // i=0, 0/1 <=> all is OK/program needs to abort.
+        // i=1, received FTRapidPacket.
+        List<Object> returnList = new ArrayList<>(2);
+
+        boolean timedOut = true;
+        while(timedOut) {
+            try {
+                // Send packet.
+                if(packet != null)
+                    socket.send(packet);
+
+                // Create a byte array to receive data.
+                byte[] receiveData = new byte[BUFFER_SIZE];
+
+                // Receive the server's packet
+                DatagramPacket received = new DatagramPacket(receiveData, receiveData.length);
+
+                socket.setSoTimeout(5000); // TODO: WHERE TO PUT THIS? Should we use different timeouts if biggerRandom / smallerRandom?
+                socket.receive(received);
+
+                // Build FTRapidPacket.
+                FTRapidPacket ftRapidPacket = new FTRapidPacket(received, MODE);
+
+                // If we receive an the expected packet, stop the while loop
+                if (ftRapidPacket.getOPCODE() == OPCODE
+                        && ftRapidPacket.getSequenceNumber() == seqNum
+                        && ftRapidPacket.getTransferMODE() == MODE)
+                {
+                    timedOut = false;
+                    returnList.add(0, 0); // Everything OK.
+                    returnList.add(1, new FTRapidPacket(ftRapidPacket));
+                }
+            }
+            catch (SocketTimeoutException exception) {
+                // If we don't get an ack, prepare to resend metadata.
+                if(timeOutCounter > 0){
+                    timeOutCounter--;
+                    System.out.println("Timeout...");
+                }
+                else{
+                    timedOut = false;
+                    returnList.add(0, 1); // Abort program.
+                    System.out.println("Timeout limit exceeded.");
+                }
+            }
+            catch (IOException e) {
+                if(socket.isClosed()) {
+                    System.out.println("Receive Socket closed prematurely.");
+                }
+                else
+                    e.printStackTrace();
+
+                timedOut = false;
+                returnList.add(0, 1); // Abort program.
+            }
+        }
+
+        return returnList;
+    }
+
 
 
     @Override

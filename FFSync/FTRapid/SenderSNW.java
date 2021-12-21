@@ -18,9 +18,6 @@ public class SenderSNW {
     // Mode of operation (can be FILE, LOG, GUIDE).
     public final int MODE;
 
-    // Used to receive ACK packets.
-    private final int ACK_BUFFER_SIZE = 8;
-
     // Filepath (if needed).
     private final String FILEPATH;
 
@@ -31,6 +28,9 @@ public class SenderSNW {
     private final DatagramSocket socket;
     private final InetAddress ADDRESS;
     private final int PORT;
+
+    // Amount of maximum timeouts before exiting.
+    private final int timeOutCounter;               // TODO: CHEGA 3?
 
     // Sending File
     public SenderSNW(InetAddress address, int PORT, String filepath){
@@ -65,6 +65,7 @@ public class SenderSNW {
             this.socket = localSocket;
             this.ADDRESS = address;
             this.PORT = PORT;
+            this.timeOutCounter = 3;
         }
     }
 
@@ -76,109 +77,38 @@ public class SenderSNW {
         this.dataToSend = data.clone();
         this.MODE = mode;
         this.FILEPATH = "";
+        this.timeOutCounter = 3;
     }
 
-    // Send file to another peer, after sending META packet.
-    // TODO: simplify code -> "while(timeout){}" piece of code is similar...
-    public int send(){
+    public void send(){
         // Let's split the byte[] dataToSend into many packets (use packet size determined in FTRapidPacket class).
         List<byte[]> allPackets = split(this.dataToSend);
 
         // Create META packet.
-        System.out.println("filesize=" + dataToSend.length + " : n_pack=" + allPackets.size()); // TODO: REMOVE
-        System.out.println("filepath=" + FILEPATH);// TODO: REMOVE
-
         DatagramPacket metaPacket = FTRapidPacket.getMETAPacket(ADDRESS, PORT, this.MODE, dataToSend.length, this.FILEPATH);
 
         // Send META packet and wait for approval.
-        boolean timedOut = true;
-        int timeOutCounter = 3; // TODO: CHEGA?
-        while(timedOut) {
-            try {
-                // Send META packet.
-                socket.send(metaPacket);
+        List<Object> workerResult =
+                FTRapidPacket.worker(this.socket, metaPacket, timeOutCounter, this.MODE, FTRapidPacket.ACK, 1); // TODO: CHECK RETURN VALUE
 
-                // Create a byte array to receive ACK.
-                byte[] receiveData = new byte[ACK_BUFFER_SIZE];
-
-                // Receive the server's packet
-                DatagramPacket received = new DatagramPacket(receiveData, receiveData.length);
-                socket.setSoTimeout(3000); // TODO: TIMEOUT
-                socket.receive(received);
-
-                // Build FTRapidPacket.
-                FTRapidPacket ftRapidPacket = new FTRapidPacket(received, this.MODE);
-
-                // If we receive an ack, stop the while loop
-                if (ftRapidPacket.getOPCODE() == FTRapidPacket.ACK && ftRapidPacket.getSequenceNumber() == 1) {
-                    timedOut = false;
-                } else
-                    socket.send(metaPacket);
-            }
-            catch (SocketTimeoutException exception) {
-                // If we don't get an ack, prepare to resend metadata.
-                if(timeOutCounter > 0){
-                    timeOutCounter--;
-                    System.out.println("Server not responding to metadata.");
-                }
-                else{
-                    timedOut = false;
-                    System.out.println("Timeout limit exceeded.");
-                }
-            }
-            catch (IOException e) {
-                e.printStackTrace();
-            }
+        // Check if we should continue.
+        if(workerResult.size() < 1 || workerResult.get(0).equals(1)){
+            return; // TODO: GTFO
         }
 
-
-        int counter = 0;
         // Send data to the other peer.
         int seqNum = 0; // sequence number can only be 0/1.
         for (byte[] packData : allPackets) {
-            timeOutCounter = 3; // TODO: Is 5 timeouts limit a good number?
-
-            // Create and send data packet.
+            // Create data packet.
             DatagramPacket dataPacket = FTRapidPacket.getDATAPacket(this.ADDRESS, this.PORT, seqNum, packData);
-            timedOut = true;
-            while (timedOut) {
-                // Create a byte array for receiving data.
-                byte[] receiveData = new byte[FTRapidPacket.BUFFER_SIZE];
-                try {
-                    // Send packet to peer.
-                    socket.send(dataPacket);
 
-                    // Receive the server's packet
-                    DatagramPacket received = new DatagramPacket(receiveData, receiveData.length);
-                    socket.setSoTimeout(2000); // TODO: TIMEOUT...
-                    socket.receive(received);
+            // Send data packet and wait for ACK. Do this in a stop-and-wait manner.
+            workerResult =
+                    FTRapidPacket.worker(this.socket, dataPacket, timeOutCounter, this.MODE, FTRapidPacket.ACK, seqNum); // TODO: CHECK RETURN VALUE
 
-                    // Build FTRapidPacket.
-                    FTRapidPacket ftRapidPacket = new FTRapidPacket(received, this.MODE);
-
-                    // If we receive an ack, stop the while loop
-                    if (ftRapidPacket.getOPCODE() == FTRapidPacket.ACK && ftRapidPacket.getSequenceNumber() == seqNum)
-                    {
-                        timedOut = false;
-                        System.out.println("Sended packet " + counter + "/" + (allPackets.size() - 1));// TODO: REMOVE
-                        counter++;// TODO: REMOVE
-                    }
-                }
-                catch (SocketTimeoutException exception) {
-                    // If we don't get an ack, prepare to resend sequence number
-                    if(timeOutCounter > 0){
-                        timeOutCounter--;
-                        System.out.println("Timeout. Packet will be resent.");
-                    }
-                    else{
-                        timedOut = false;
-                        System.out.println("Timeout limit exceeded.");
-                        // TODO: PONHO ME A ANDAR E MANDO O FICHEIRO CA GAITA?
-                    }
-                }
-                catch (IOException e){
-                    e.printStackTrace();
-                }
+            // Check if we should continue.
+            if(workerResult.size() < 1 || workerResult.get(0).equals(1)){
+                return; // TODO: GTFO
             }
 
             // Change sequence number.
@@ -189,11 +119,7 @@ public class SenderSNW {
         if(this.MODE == FTRapidPacket.FILE)
             socket.close();
 
-
-        System.out.println(this.FILEPATH + " was sent."); // TODO: REMOVE
-
         // ALL IS OK.
-        return 0; // TODO: TEMPO TRANSFER + BITS/S - maybe with a record.
     }
 
     // Split byte[] into list. Packet Size defined in FTRapidPacket class.
