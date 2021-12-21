@@ -222,9 +222,6 @@ public class FTRapidPacket {
         return new DatagramPacket(packetB, packetB.length, ADDRESS, PORT);
     }
 
-
-
-
     // Worker - Does all the work. Used in sending and receiving messages.
     public static List<Object> worker(DatagramSocket socket, DatagramPacket packet, int timeOutCounter, int MODE, int OPCODE, int seqNum){
         // Return value = List
@@ -265,12 +262,11 @@ public class FTRapidPacket {
                 // If we don't get an ack, prepare to resend metadata.
                 if(timeOutCounter > 0){
                     timeOutCounter--;
-                    System.out.println("Timeout...");
                 }
                 else{
                     timedOut = false;
                     returnList.add(0, 1); // Abort program.
-                    System.out.println("Timeout limit exceeded.");
+                    System.out.println("Timeout limit exceeded. Aborting.");
                 }
             }
             catch (IOException e) {
@@ -287,8 +283,6 @@ public class FTRapidPacket {
 
         return returnList;
     }
-
-
 
     @Override
     public int hashCode() {

@@ -67,9 +67,7 @@ public class ThreadPool{
 
             //If the number of max threads is 0 the handler will go to sleep
             else if (incOrDec == -1 && nMaxThreads == 0) {
-                System.out.println("Adormeci");
                 condition.await();
-                System.out.println("Acordei");
             }
         } catch (InterruptedException e) {
             e.printStackTrace();

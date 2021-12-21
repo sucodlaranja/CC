@@ -52,10 +52,8 @@ public class FilesWaitingRequestPool{
     public void sleepIfEmpty(){
         lock.lock();
         try {
-            System.out.println("a ir dormir--------------------------------------");
             if (upcomingFiles.isEmpty())
                 condition.await();
-            System.out.println("ja dormi tudo crl -------------------------------------------------");
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {

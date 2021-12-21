@@ -227,9 +227,6 @@ public class SyncHandler implements Runnable{
         if (!this.syncSocket.isClosed() && (guide != null) && (guide.getGuide().size() > 0)) {
             this.syncInfo.activate();
 
-            for(TransferLogs tl : guide.getGuide())
-                System.out.println("Filename: " + tl.getFileName() + " b=" + tl.isSender());
-
             // History
             this.syncHistory.updateGuide(guide.getGuide());
             try {

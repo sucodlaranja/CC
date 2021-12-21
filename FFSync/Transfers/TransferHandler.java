@@ -68,11 +68,8 @@ public class TransferHandler {
                 syncSocket.setSoTimeout(5000);
                 syncSocket.receive(received);
             }
-            catch (SocketTimeoutException e){
-                System.out.println("TransferHandler Listener timedout.");
-            }
-            catch (IOException e) {
-                e.printStackTrace();
+            catch (Exception e){
+                return null;
             }
 
             return new FTRapidPacket(received, FTRapidPacket.INVALID);
@@ -80,29 +77,28 @@ public class TransferHandler {
 
         @Override
         public void run() {
-            String filename;
-
-            System.out.println("transfer_handler_listener_online"); // TODO: REMOVE
+            String filename = "";
 
             // ends when finish is true and the previous iteration did not give out a filename
             do{
                 filesWaitingRequestPool.sleepIfEmpty(); // sleeps if there is no request to ear (set is empty)
 
                 FTRapidPacket packet = listen();
-                int communicateToPort = packet.getPort();
-                InetAddress ipAddress = packet.getPeerAddress();
-                filename = packet.getFilename();
+                if(packet != null) {
+                    int communicateToPort = packet.getPort();
+                    InetAddress ipAddress = packet.getPeerAddress();
+                    filename = packet.getFilename();
 
-                // if the filename we read is on the set we create a thread to send it to the other person.
-                if (filesWaitingRequestPool.removeUpcomingFiles(filename)){
-                    String completeFilepath = getCompleteFilepath(filepath, filename);
-                    Thread t = new Thread(new SendFile(communicateToPort, ipAddress, completeFilepath));
-                    t.start();
+                    // if the filename we read is on the set we create a thread to send it to the other person.
+                    if (filesWaitingRequestPool.removeUpcomingFiles(filename)) {
+                        String completeFilepath = getCompleteFilepath(filepath, filename);
+                        Thread t = new Thread(new SendFile(communicateToPort, ipAddress, completeFilepath));
+                        t.start();
+                    }
                 }
 
             } while(!filesWaitingRequestPool.getFinish() || !filename.equals(""));
 
-            System.out.println("transfer_handler_listener_offline"); // TODO: REMOVE
         }
     }
 
@@ -183,8 +179,6 @@ public class TransferHandler {
         int size = guide.size();
         int max_files = threadPool.getNMaxFiles();
 
-        System.out.println("guide_size=" + size); // TODO: REMOVE
-
         // ends whene there are no more files in the guide
         while (size > 0 ){
 
@@ -194,15 +188,12 @@ public class TransferHandler {
 
             // Verifies if I am the one to request the file
             if (doIRequest(biggerNumber,oneTransfer.isSender())) {
-
-                System.out.println("requesting file=" + oneTransfer.getFileName()); // TODO: REMOVE
                 // Starts the thread to request the file
                 Thread t = new Thread(new ReceiveFile(handlerPort, address, filepath ,oneTransfer.getFileName()));
                 t.start();
             }
             // Adds the file on the set of files that the other user wants to transfer
             else {
-                System.out.println("other_peer_will_ask_for=" + oneTransfer.getFileName());
                 filesWaitingRequestPool.addUpcomingFiles(oneTransfer.getFileName());
             }
 
@@ -213,8 +204,6 @@ public class TransferHandler {
 
 
         // TODO :ESPERAR ALGUM TEMPO ???
-
-        System.out.println("maxFiles:" + (max_files));
 
 
         // checkar set..
@@ -230,9 +219,6 @@ public class TransferHandler {
         // Waits for all threads to finish
         threadPool.waitForAllThreadsToFinish(max_files);
 
-        System.out.println("maxFiles:" + (max_files));
-
-        System.out.println("vou mandar acordar este gajo-----------------------");
         filesWaitingRequestPool.setFinish();
         try {
             listener.join();
@@ -240,7 +226,6 @@ public class TransferHandler {
         catch (InterruptedException e) {
             e.printStackTrace();
         }
-
 
         this.checkProcessTransfers = true;
     }
