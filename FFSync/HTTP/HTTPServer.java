@@ -15,34 +15,42 @@ import java.util.HashSet;
 import java.util.Set;
 
 import HistoryRecorder.TransferHistory;
+
 ///This class is responsable for the http server.
 /**
- * descricao detalhada
+ * This class creates, controls and maintains the http Server, implements \b Runnable so that we can run this code in a separated thread. \n
+ * Contains one constructor \b HTTPServer(int port) that initializes the serversocket, and creates the \ref HTTP_FILEPATH directory. \n
+ * This server is running along side it the program, receives requests from clients and gives information about the \b syncs that are happening. \n
+ * The server has a Main Menu that contains all the names of the folders that are in sync, the client have the option to click in one of the names,
+ * and will be redirected to a new page, that contains all files from that sync with some information about each one.
  */
 
 public class HTTPServer implements Runnable {
 
-    ///ServerSocket for the HTTP server
+    /// ServerSocket for the HTTP server
     private final ServerSocket serverSocket;
-    ///Port that the http server is listening on.    
+    /// Port that the http server is listening on.
     private final int port;
-    ///Path that has files with info of all syncs.                                     
-    public static String HTTP_FILEPATH = "HistorySaved";        
+    /// Path that has files with info of all syncs.
+    public static String HTTP_FILEPATH = "HistorySaved";
 
     /**
-     * Constructor that receives the \ref port that the HTTP server will listen on.\n Initializes the \b serverSocket with the given port, and 
-     * verifies \n if the directory that will store all info about the syncs exists, if so \n deletes it.\N Finnaly creates a directory in \b HTTP_FILEPATH.
-     * @param port
-     * @param serverSocket
+     * Constructor that receives the \ref port that the HTTP server will listen
+     * on.\n Initializes the \b serverSocket with the given port, and
+     * verifies \n if the directory that will store all info about the syncs exists,
+     * if so \n deletes it.\N Finnaly creates a directory in \b HTTP_FILEPATH.
+     * 
+     * @param port \ref port
+     * 
      * @throws IOException
      */
     public HTTPServer(int port) throws IOException {
         this.port = port;
         this.serverSocket = new ServerSocket(port);
 
-        if(Files.exists(Paths.get(HTTP_FILEPATH))){
+        if (Files.exists(Paths.get(HTTP_FILEPATH))) {
             try {
-                Files.list(Paths.get(HTTP_FILEPATH)).map(Path :: toFile).forEach(File :: delete);
+                Files.list(Paths.get(HTTP_FILEPATH)).map(Path::toFile).forEach(File::delete);
                 Files.delete(Paths.get(HTTP_FILEPATH));
             } catch (IOException e) {
                 e.printStackTrace();
@@ -51,12 +59,18 @@ public class HTTPServer implements Runnable {
 
         Files.createDirectory(Paths.get(HTTP_FILEPATH));
     }
+
     /**
+     * this method contains of a loop that receives HTTP requests, \n
+     * accepts a connection with the client, reads all content in client \b InputStream. \n
+     * Isolates the get request, splits the argument and redirects to \ref getHandler method.\n
+     * That is responsable for creating the html code that will be sent by \b outputstream.
+     * Maintains in the loop until the program shuts down and the \ref closeServer is called.
      * 
      */
     public void run() {
         boolean closed = true;
-        while(!serverSocket.isClosed() && closed) {
+        while (!serverSocket.isClosed() && closed) {
             try {
                 Socket clientSocket = serverSocket.accept();
 
@@ -73,11 +87,12 @@ public class HTTPServer implements Runnable {
 
                 }
 
-                if(control != null) {
+                if (control != null) {
                     OutputStream out = clientSocket.getOutputStream();
                     out.write("HTTP/1.1 200 OK\r\n".getBytes());
                     out.write("\r\n".getBytes());
-                    if (s != null) getHandler(control[1], out);                                        //handler
+                    if (s != null)
+                        getHandler(control[1], out); // handler
                     out.write("\r\n\r\n".getBytes());
 
                     out.flush();
@@ -85,105 +100,114 @@ public class HTTPServer implements Runnable {
                 }
 
                 in.close();
-            }
-            catch (SocketException e) {
+            } catch (SocketException e) {
                 System.err.println("HTTP SERVER CLOSED");
                 closed = false;
                 e.printStackTrace(); // TODO: fica?
-            } catch (IOException | ClassNotFoundException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
 
-
         try {
-            Files.list(Paths.get(HTTP_FILEPATH)).map(Path :: toFile).forEach(File :: delete);
+            Files.list(Paths.get(HTTP_FILEPATH)).map(Path::toFile).forEach(File::delete);
             Files.delete(Paths.get(HTTP_FILEPATH));
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
 
         // Termination message.
         System.err.println("HTTP server terminated.");
     }
-    ///Handles all get requests from the user.
+
+    /// Handles all get requests from the user.
     /**
-     * Receives the get request argument, verifies if the arguments is simply "/", if so, calls \ref mainMenu that creates the mainmenu.\n
-     * If the arguments has more than "/", it fabricates and insert html code for the given argument, it starts for creating the title for the page,\n
-     * creates a \b back "button", that traces back to \bmainMenu, and displays all info about the given arguments with the help of \ref getSync method.
-     * @param argument argument for the get request
-     * @param out   outputstream from connection
-     * @throws IOException
-     * @throws ClassNotFoundException
+     * Receives the get request argument, verifies if the arguments is simply "/",
+     * if so, calls \ref mainMenu that creates the mainmenu.\n
+     * If the arguments has more than "/", it fabricates and insert html code for
+     * the given argument, it starts for creating the title for the page,\n
+     * creates a \b back "button", that traces back to \bmainMenu, and displays all
+     * info about the given arguments with the help of \ref getSync method.
+     * 
+     * @param argument argument for the get request.
+     * @param out      outputstream from connection.
+     * @throws IOException Happens when an error occurs while reading files in \ref getallSyncs that is called in \ref mainMenu.
      */
-    public void getHandler(String argument,OutputStream out) throws IOException, ClassNotFoundException {
-        String [] splitArgument = argument.split("/");
-        
-        if(argument.equals("/") || argument.equals("/favicon.ico")) {
+    public void getHandler(String argument, OutputStream out) throws IOException {
+        String[] splitArgument = argument.split("/");
+
+        if (argument.equals("/") || argument.equals("/favicon.ico")) {
             mainMenu(out);
-        }
-        else if(splitArgument.length == 2) {
+        } else if (splitArgument.length == 2) {
             out.write(("<h1>" + splitArgument[1] + "</h1>").getBytes());
             out.write(("<a href=\"http://localhost:" + port + "\">back</a>").getBytes());
             out.write((getSync(HTTP_FILEPATH + "/" + splitArgument[1])).getBytes());
         }
-        
+
     }
 
-
     /**
-     * Auxiliar method to use in \ref mainMenu method so it can fabricate the html code for the http main menu.
-     * @return  returns a set with all folder's names inside the \ref HTTP_FILEPATH parameter
+     * Auxiliar method to use in \ref mainMenu method so it can fabricate the html
+     * code for the http main menu.
+     * 
+     * @return returns a set with all folder's names inside the \ref HTTP_FILEPATH
+     *         parameter
      * @throws IOException
+     *  Happens when an error occurs while reading files inside \ref HTTP_FILEPATH 
      */
-    public Set<String> getAllSyncs() throws IOException { 
+    public Set<String> getAllSyncs() throws IOException {
         Path folder = Paths.get(HTTP_FILEPATH);
         Set<String> files = new HashSet<>();
-        for(Path file: Files.list(folder).toList()) {
+        for (Path file : Files.list(folder).toList()) {
             files.add(file.getFileName().toString());
-            
+
         }
         return files;
     }
 
     /**
-     * Method that receives a \b filename, this \b filename represents the folder in sync that the user wants to visualizem, \n
-     * the return string will have all files syncing inside that directory, it will have information about the \n date of last tranfer, \n 
+     * Method that receives a \b filename, this \b filename represents the folder in
+     * sync that the user wants to visualizem, \n
+     * the return string will have all files syncing inside that directory, it will
+     * have information about the \n date of last tranfer, \n
      * time and bits per second the last tranfer took.
+     * 
      * @return returns a string with all html code to display
-     * @throws IOException
-     * @throws ClassNotFoundException
      */
-    public String getSync(String filename) throws IOException, ClassNotFoundException {
-       
-        TransferHistory history = new TransferHistory(filename);
-        return history.toHTML();
-      
+    public String getSync(String filename) {
+        try {
+            TransferHistory history = new TransferHistory(filename);
+            return history.toHTML();
+        } catch (IOException | ClassNotFoundException e) {
+            return "<h2>Information about this sync does not exist</h2>";
+        }
+
     }
 
     /**
      *
-     * Constructs the mainMenu of the HTTP server.\n Obtains all the files that are syncing from \ref getAllSyncs, uses this set to \n
+     * Constructs the mainMenu of the HTTP server.\n Obtains all the files that are
+     * syncing from \ref getAllSyncs, uses this set to \n
      * fabricates and insert html code in the outputstream \b out.
+     * 
      * @param out outputstream from connection
      */
     public void mainMenu(OutputStream out) throws IOException {
         Set<String> files = getAllSyncs();
         out.write("<b><h1>Menu Principal</h1></b>".getBytes());
-        for( String entry : files) {
-            out.write(("<h2><a href=\"http://localhost:" + port + "/" + entry + "\">"+ entry  + "</a></h2>").getBytes());
+        for (String entry : files) {
+            out.write(
+                    ("<h2><a href=\"http://localhost:" + port + "/" + entry + "\">" + entry + "</a></h2>").getBytes());
         }
     }
 
     /**
      * Closes the \ref serverSocket when the program is shutting down.
      */
-    public void closeServer(){
-        try{
+    public void closeServer() {
+        try {
             this.serverSocket.close();
-        }
-        catch (IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
