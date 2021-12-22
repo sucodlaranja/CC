@@ -104,6 +104,10 @@ public class SenderSNW {
         if(FTRapidPacket.sendAndWaitLoop(this.socket, metaPacket, FTRapidPacket.ACK, this.MODE, 1, false) == null)
             return;
 
+
+        // TODO: start timer
+        long start = System.currentTimeMillis();
+
         int counter = 0;
         // Send data to the other peer.
         int seqNum = 0; // sequence number can only be 0/1.
@@ -120,12 +124,29 @@ public class SenderSNW {
             seqNum = seqNum == 0? 1 : 0;
         }
 
+        // Transfer end time.
+        long end = System.currentTimeMillis();
+
         // Close this socket only if in FILE mode - not going to be used again.
         if(this.MODE == FTRapidPacket.FILE)
             socket.close();
 
 
-        System.out.println(this.FILEPATH + " was sent."); // TODO: REMOVE
+        // Printing stats
+        long elapsedTime = end - start;
+        System.out.println(this.FILEPATH + " was sent in " + elapsedTime + " mili seconds.");
+        System.out.println("Average speed of " + ((this.dataToSend.length * 0.001) / (elapsedTime * Math.pow(10, -9))) + " KB/s");
+
+
+        /*
+        Packet = 512
+        * /home/rubensas/Desktop/teste/velho_big.txt was sent in 10254 mili seconds.
+        * Average speed of 2.1140403744880047E8 KB/s
+        *
+        Packet = 800
+        * /home/rubensas/Desktop/teste/velho_big.txt was sent in 7514 mili seconds.
+        * Average speed of 2.884930795847751E8 KB/s
+        * */
 
         // ALL IS OK.
     }
