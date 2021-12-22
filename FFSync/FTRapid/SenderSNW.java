@@ -1,5 +1,7 @@
 package FTRapid;
 
+import Logs.TransferLogs;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.*;
@@ -91,10 +93,10 @@ public class SenderSNW {
 
     // Send file to another peer, after sending META packet.
     // TODO: RETURN SOMETHING USEFUL -> sent/not sent, stats...
-    public void send(){
+    public TransferLogs send(){
         // Constructor failed.
         if(!allOK)
-            return;
+            return null;
 
         // Let's split the byte[] dataToSend into many packets (use packet size determined in FTRapidPacket class).
         List<byte[]> allPackets = split(this.dataToSend);
@@ -102,7 +104,7 @@ public class SenderSNW {
         DatagramPacket metaPacket = FTRapidPacket.getMETAPacket(ADDRESS, PORT, this.MODE, dataToSend.length, this.FILEPATH);
 
         if(FTRapidPacket.sendAndWaitLoop(this.socket, metaPacket, FTRapidPacket.ACK, this.MODE, 1, false) == null)
-            return;
+            return null;
 
 
         // TODO: start timer
@@ -115,7 +117,7 @@ public class SenderSNW {
 
             DatagramPacket dataPacket = FTRapidPacket.getDATAPacket(this.ADDRESS, this.PORT, seqNum, packData);
             if(FTRapidPacket.sendAndWaitLoop(this.socket, dataPacket, FTRapidPacket.ACK, this.MODE, seqNum, false) == null)
-                return;
+                return null;
 
             System.out.println("Sended packet " + counter + "/" + (allPackets.size() - 1)); // TODO: REMOVE
             counter++;// TODO: REMOVE
@@ -134,8 +136,9 @@ public class SenderSNW {
 
         // Printing stats
         long elapsedTime = end - start;
+        double bitsPSeg = ((this.dataToSend.length) / (elapsedTime * Math.pow(10, -9))) * 8;
         System.out.println(this.FILEPATH + " was sent in " + elapsedTime + " mili seconds.");
-        System.out.println("Average speed of " + ((this.dataToSend.length * 0.001) / (elapsedTime * Math.pow(10, -9))) + " KB/s");
+        System.out.println("Average speed of " + bitsPSeg + " KB/s");
 
 
         /*
@@ -149,6 +152,8 @@ public class SenderSNW {
         * */
 
         // ALL IS OK.
+
+        return new TransferLogs(this.FILEPATH,true,elapsedTime,bitsPSeg);
     }
 
     // Split byte[] into list. Packet Size defined in FTRapidPacket class.

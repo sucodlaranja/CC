@@ -52,8 +52,8 @@ public class LogsManager {
         StringBuilder sb = new StringBuilder();
         sb.append(logs.size()).append("@");
         for (Map.Entry<String, LogsRecord> log : logs.entrySet())
-            sb.append(log.getKey()).append("@").append(log.getValue().getFileTime().toMillis()).append("@")
-                    .append(log.getValue().getChecksum()).append("@");
+            sb.append(log.getKey()).append("@").append(log.getValue().fileTime().toMillis()).append("@")
+                    .append(log.getValue().checksum()).append("@");
         return sb.toString().getBytes(StandardCharsets.UTF_8);
     }
 

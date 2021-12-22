@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.net.*;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 
 /**
@@ -64,7 +65,7 @@ public class SyncHandler implements Runnable{
         LogsManager logsManager = null;
         try {
             logsManager = new LogsManager(this.syncInfo.getFilepath());
-            this.syncHistory.updateLogs(logsManager.getFileNames());
+            this.syncHistory.updateLogs(logsManager.getLogs());
             this.syncHistory.saveTransferHistory(HTTPServer.HTTP_FILEPATH + "/" + this.syncInfo.getFilename() + "-" + this.syncInfo.getId());
         }
         catch (IOException e){
@@ -94,7 +95,11 @@ public class SyncHandler implements Runnable{
 
         // Wait, receive and return guide.
         ReceiverSNW receiverSNW = new ReceiverSNW(this.syncSocket, FTRapidPacket.GUIDE, this.syncInfo.getIpAddress(), this.handlerPort);
-        byte[] guideBytes = receiverSNW.requestAndReceive();
+        List<Object> list = receiverSNW.requestAndReceive();
+        byte[] guideBytes = null;
+        if (list != null) {
+            guideBytes = (byte[]) list.get(0);
+        }
 
         return guideBytes == null? null : new Guide(guideBytes); // ABORT SYNC = FALSE.
     }
@@ -117,7 +122,11 @@ public class SyncHandler implements Runnable{
 
         // Acknowledge that we've received the INIT_ACK packet and receive LOGS.
         ReceiverSNW receiverSNW = new ReceiverSNW(this.syncSocket, FTRapidPacket.LOGS, this.getInfo().getIpAddress(), this.handlerPort);
-        byte[] logsBytes = receiverSNW.requestAndReceive();
+        List<Object> list = receiverSNW.requestAndReceive();
+        byte[] logsBytes = null;
+        if (list != null) {
+            logsBytes = (byte[]) list.get(0);
+        }
 
         // Create LogsManager instance.
         LogsManager beta = new LogsManager(logsBytes);
@@ -127,7 +136,7 @@ public class SyncHandler implements Runnable{
         LogsManager alfa;
         try {
             alfa = new LogsManager(this.syncInfo.getFilepath());
-            this.syncHistory.updateLogs(alfa.getFileNames());
+            this.syncHistory.updateLogs(alfa.getLogs());
             this.syncHistory.saveTransferHistory(HTTPServer.HTTP_FILEPATH + "/" + this.syncInfo.getFilename() + "-" + this.syncInfo.getId());
         }
         catch (IOException e){
@@ -200,18 +209,18 @@ public class SyncHandler implements Runnable{
             this.syncInfo.activate();
 
             for(TransferLogs tl : guide.getGuide())
-                System.out.println("Filename: " + tl.getFileName() + " b=" + tl.isSender());
+                System.out.println("Filename: " + tl.fileName() + " b=" + tl.sender());
+
+            TransferHandler transferHandler = new TransferHandler(5, guide, this.syncInfo.getFilepath(), this.syncSocket, this.syncInfo.getIpAddress(), this.handlerPort, this.isBiggerNumber);
+            Set<TransferLogs> transfers = transferHandler.processTransfers();
 
             // History
-            this.syncHistory.updateGuide(guide.getGuide());
+            this.syncHistory.updateGuide(transfers);
             try {
                 this.syncHistory.saveTransferHistory(HTTPServer.HTTP_FILEPATH + "/" + this.syncInfo.getFilename() + "-" + this.syncInfo.getId());
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
-            TransferHandler transferHandler = new TransferHandler(5, guide, this.syncInfo.getFilepath(), this.syncSocket, this.syncInfo.getIpAddress(), this.handlerPort, this.isBiggerNumber);
-            transferHandler.processTransfers();
 
         }
         System.out.println("one_sync_finished"); // TODO: REMOVE

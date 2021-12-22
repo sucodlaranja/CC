@@ -22,10 +22,12 @@ public class Guide {
         String[] logsStrArr = logsStr.split("@");
         int size = Integer.parseInt(logsStrArr[0]);
 
-        for(int i = 1; i < size * 2; i+=2){
+        for(int i = 1; i < size * 4; i+=4){
             String name = logsStrArr[i];
             boolean isSender = Boolean.parseBoolean(logsStrArr[i+1]);
-            this.guide.add(new TransferLogs(name, isSender));
+            long elapsedTime = Long.parseLong(logsStrArr[i+2]);
+            long bitsPSeg = Long.parseLong(logsStrArr[i+3]);
+            this.guide.add(new TransferLogs(name, isSender,elapsedTime,bitsPSeg));
         }
     }
 
@@ -34,7 +36,10 @@ public class Guide {
         StringBuilder sb = new StringBuilder();
         sb.append(this.guide.size()).append("@");
         for (TransferLogs transferLogs : this.guide)
-            sb.append(transferLogs.getFileName()).append("@").append(transferLogs.isSender()).append("@");
+            sb.append(transferLogs.fileName()).append("@")
+                    .append(transferLogs.sender()).append("@")
+                    .append(transferLogs.elapsedTime()).append("@")
+                    .append(transferLogs.bitsPSeg()).append("@");
 
         return sb.toString().getBytes(StandardCharsets.UTF_8);
     }
@@ -50,14 +55,16 @@ public class Guide {
             if (beta.containsKey(file.getKey())){
                 int comp = beta.remove(file.getKey()).compareTo(file.getValue());
 
-                if (comp > 0) listOfTransfers.add(new TransferLogs(file.getKey(), true));
-                else if (comp < 0) listOfTransfers.add(new TransferLogs(file.getKey(), false));
+                if (comp > 0) listOfTransfers.add(
+                        new TransferLogs(file.getKey(), true, -1,-1));
+                else if (comp < 0)
+                    listOfTransfers.add(new TransferLogs(file.getKey(), false,-1,-1));
             }
             // The other guy does not have this file
-            else listOfTransfers.add(new TransferLogs(file.getKey(), false));
+            else listOfTransfers.add(new TransferLogs(file.getKey(), false, -1,-1));
         }
         // Adds all the files that he has, and I don't.
-        for(String fileName:  beta.keySet()) listOfTransfers.add(new TransferLogs(fileName, true));
+        for(Map.Entry<String, LogsRecord> file:  beta.entrySet()) listOfTransfers.add(new TransferLogs(file.getKey(), true, -1,-1));
 
         return listOfTransfers;
 

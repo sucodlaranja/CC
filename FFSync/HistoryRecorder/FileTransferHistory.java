@@ -9,10 +9,10 @@ import java.sql.Timestamp;
  */
 public class FileTransferHistory implements Serializable {
     private long lastUpdated;
-    private int timeOfTransfer;
-    private int bitsPSeg;
+    private long timeOfTransfer;
+    private double bitsPSeg;
 
-    public FileTransferHistory(FileTime lastUpdated, int timeOfTransfer, int bitsPSeg) {
+    public FileTransferHistory(FileTime lastUpdated, long timeOfTransfer, double bitsPSeg) {
         if (lastUpdated == null) this.lastUpdated = -1;
         else this.lastUpdated = lastUpdated.toMillis();
         this.timeOfTransfer = timeOfTransfer;
@@ -25,14 +25,17 @@ public class FileTransferHistory implements Serializable {
         this.bitsPSeg = fileTransferHistory.bitsPSeg;
     }
 
-    public void setLastUpdated(FileTime lastUpdated ) {
-        if (lastUpdated == null) this.lastUpdated = -1;
-        else this.lastUpdated = lastUpdated.toMillis();
+    public long getFileTime(){
+        return lastUpdated;
     }
 
-    public void setTimeOfTransfer(int timeOfTransfer ) { this.timeOfTransfer = timeOfTransfer; }
+    public void setLastUpdated(long lastUpdated ) {
+        this.lastUpdated = lastUpdated;
+    }
 
-    public void setBitsPSeg(int bitsPSeg ) { this.bitsPSeg = bitsPSeg; }
+    public void setTimeOfTransfer(long timeOfTransfer ) { this.timeOfTransfer = timeOfTransfer; }
+
+    public void setBitsPSeg(double bitsPSeg ) { this.bitsPSeg = bitsPSeg; }
 
     public FileTransferHistory clone(){
         return new FileTransferHistory(this);

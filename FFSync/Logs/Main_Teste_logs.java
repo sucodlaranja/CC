@@ -26,12 +26,12 @@ public class Main_Teste_logs {
         long h = 2147483647;
 
         for(Map.Entry<String,LogsRecord> recordEntry : logs.entrySet())
-            System.out.println(recordEntry.getKey() + " -> " + recordEntry.getValue().getFileTime() + " " + (recordEntry.getValue().getChecksum()));
+            System.out.println(recordEntry.getKey() + " -> " + recordEntry.getValue().fileTime() + " " + (recordEntry.getValue().checksum()));
 
         Queue<TransferLogs> guide = l1.compareLogs(l2.getLogs()).getGuide();
 
         for(TransferLogs transferLogs : guide)
-            System.out.println("-------" + transferLogs.getFileName() + "         " + transferLogs.isSender());
+            System.out.println("-------" + transferLogs.fileName() + "         " + transferLogs.sender());
 
 
 

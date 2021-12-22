@@ -124,8 +124,8 @@ public class TransferHandler {
         public void run() {
             // Send file.
             SenderSNW senderSNW = new SenderSNW(sendToIpAddress, sendToPort, filepath);
-            senderSNW.send();
-
+            TransferLogs transferLogs = senderSNW.send();
+            threadPool.addTransferLogs(transferLogs);
             threadPool.inc_dec_nMaxFiles(1);
         }
     }
@@ -149,7 +149,8 @@ public class TransferHandler {
         @Override
         public void run() {
             ReceiverSNW receiverSNW = new ReceiverSNW(this.address, this.port, getCompleteFilepath(filepath, filename), this.filename);
-            receiverSNW.requestAndReceive();
+            List<Object> list = receiverSNW.requestAndReceive();
+            if (list != null) threadPool.addTransferLogs((TransferLogs) list.get(1));
             threadPool.inc_dec_nMaxFiles(1);
         }
     }
@@ -167,13 +168,13 @@ public class TransferHandler {
     }
 
     // Main method of this class
-    public void processTransfers(){
+    public Set<TransferLogs> processTransfers(){
         // Get guide.
         Queue<TransferLogs> guide = this.transfersGuide.getGuide();
 
         // Execute processTransfers only once.
         if(checkProcessTransfers)
-            return;
+            return threadPool.getTransferLogs();
 
         // Creates a listener to listen to requests.
         Thread listener = new Thread(new Listener(syncSocket, filepath));
@@ -193,17 +194,17 @@ public class TransferHandler {
             assert oneTransfer != null;
 
             // Verifies if I am the one to request the file
-            if (doIRequest(biggerNumber,oneTransfer.isSender())) {
+            if (doIRequest(biggerNumber,oneTransfer.sender())) {
 
-                System.out.println("requesting file=" + oneTransfer.getFileName()); // TODO: REMOVE
+                System.out.println("requesting file=" + oneTransfer.fileName()); // TODO: REMOVE
                 // Starts the thread to request the file
-                Thread t = new Thread(new ReceiveFile(handlerPort, address, filepath ,oneTransfer.getFileName()));
+                Thread t = new Thread(new ReceiveFile(handlerPort, address, filepath ,oneTransfer.fileName()));
                 t.start();
             }
             // Adds the file on the set of files that the other user wants to transfer
             else {
-                System.out.println("other_peer_will_ask_for=" + oneTransfer.getFileName());
-                filesWaitingRequestPool.addUpcomingFiles(oneTransfer.getFileName());
+                System.out.println("other_peer_will_ask_for=" + oneTransfer.fileName());
+                filesWaitingRequestPool.addUpcomingFiles(oneTransfer.fileName());
             }
 
             // Decrements the number of threads available
@@ -243,5 +244,6 @@ public class TransferHandler {
 
 
         this.checkProcessTransfers = true;
+        return threadPool.getTransferLogs();
     }
 }

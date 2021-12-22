@@ -4,10 +4,6 @@ import java.nio.file.attribute.FileTime;
 
 public record LogsRecord(FileTime fileTime, long checksum) {
 
-    public long getChecksum() {return checksum;}
-
-    public FileTime getFileTime() {return fileTime;}
-
     public int compareTo(LogsRecord logsRecord) {
         long compareChecksum = this.checksum - logsRecord.checksum;
         int compareFileTime = this.fileTime.compareTo(logsRecord.fileTime);

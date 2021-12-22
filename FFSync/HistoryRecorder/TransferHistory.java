@@ -10,6 +10,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import Logs.LogsRecord;
 import Logs.TransferLogs;
 
 public class TransferHistory implements Serializable {
@@ -32,22 +33,28 @@ public class TransferHistory implements Serializable {
         is.close();
     }
 
-    public void updateLogs(Set<String> fileNames){
+    public void updateLogs(Map<String, LogsRecord> logs ){
         List<String> remove = new ArrayList<>();
-        for (Map.Entry<String, FileTransferHistory> file : files.entrySet())
-            if(!fileNames.remove(file.getKey())) remove.add(file.getKey());
+        for (Map.Entry<String, FileTransferHistory> file : files.entrySet()){
+            LogsRecord fileTransferHistory;
+            if( (fileTransferHistory = logs.remove(file.getKey())) != null) {
+                long time = fileTransferHistory.fileTime().toMillis();
+                if (time > file.getValue().getFileTime()) file.getValue().setLastUpdated(time);
+            }
+            else remove.add(file.getKey());
+        }
 
         for(String file : remove)
             files.remove(file);
 
-        for (String file : fileNames)
-            files.put(file,new FileTransferHistory(null,-1,-1));
+        for (Map.Entry<String, LogsRecord>file : logs.entrySet())
+            files.put(file.getKey(),new FileTransferHistory(file.getValue().fileTime(), -1,-1));
     }
 
-    public void updateGuide(Queue<TransferLogs> guide){
-        for(TransferLogs fileTransfer:guide)
-            files.replace(fileTransfer.getFileName(),
-                    new FileTransferHistory(FileTime.fromMillis(0),10,10));
+    public void updateGuide(Set<TransferLogs> transfers){
+        for(TransferLogs fileTransfer:transfers)
+            files.replace(fileTransfer.fileName(),
+                    new FileTransferHistory(null,fileTransfer.elapsedTime(),fileTransfer.bitsPSeg()));
     }
 
     public void saveTransferHistory(String filepath) throws IOException {
@@ -69,13 +76,6 @@ public class TransferHistory implements Serializable {
         return html.toString();
     }
 
-    public void printPOOO(){
-        System.out.println("Tou aqui pra te dizer");
-        for(HashMap.Entry<String,FileTransferHistory> entry: files.entrySet()) {
-
-            System.out.println(entry.getKey() + " " );
-        }
-    }
     
 
 }
