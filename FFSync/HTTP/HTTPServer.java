@@ -52,11 +52,6 @@ public class HTTPServer implements Runnable {
         Files.createDirectory(Paths.get(HTTP_FILEPATH));
     }
     /**
-     * @param clientSocket 
-     * @param s 
-     * @param newString
-     * @param out 
-     * @param in
      * 
      */
     public void run() {
@@ -112,9 +107,8 @@ public class HTTPServer implements Runnable {
         // Termination message.
         System.err.println("HTTP server terminated.");
     }
-
+    ///Handles all get requests from the user.
     /**
-     * \brief Handles all get requests from the user.\n
      * Receives the get request argument, verifies if the arguments is simply "/", if so, calls \ref mainMenu that creates the mainmenu.\n
      * If the arguments has more than "/", it fabricates and insert html code for the given argument, it starts for creating the title for the page,\n
      * creates a \b back "button", that traces back to \bmainMenu, and displays all info about the given arguments with the help of \ref getSync method.
