@@ -9,6 +9,7 @@ import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class ReceiverSNW {
@@ -135,7 +136,9 @@ public class ReceiverSNW {
 
                 Files.createDirectories(Paths.get(finalDirectoryPath.toString()));
 
-                new FileOutputStream(this.filepath).write(fileBytes, 0, fileBytes.length);
+                FileOutputStream fos = new FileOutputStream(this.filepath);
+                fos.write(fileBytes, 0, fileBytes.length);
+                fos.close();
             }
             catch (FileNotFoundException e){
                 System.out.println("Receiver: " + this.filepath + " is not a valid filepath.");

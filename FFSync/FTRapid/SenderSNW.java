@@ -1,5 +1,6 @@
 package FTRapid;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.*;
 import java.nio.file.Files;
@@ -46,7 +47,9 @@ public class SenderSNW {
         // Creating socket and reading file...
         try{
             localSocket = new DatagramSocket();
-            localData = Files.readAllBytes(Paths.get( filepath ));
+            FileInputStream fis = new FileInputStream(filepath);
+            localData = fis.readAllBytes();
+            fis.close();
             localPath = filepath;
             localMode = FTRapidPacket.FILE;
             allOK = true; // only ok if exceptions were not thrown.

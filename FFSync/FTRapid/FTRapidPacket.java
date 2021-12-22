@@ -22,7 +22,7 @@ public class FTRapidPacket {
     public static final int RQF = 5;
 
     public static final int PACKET_SIZE = 512;
-    public static final int DATA_HEADER_SIZE = (DATA + "@" + DATA + "@").getBytes(StandardCharsets.UTF_8).length; // 2 char's + 2 int's.
+    public static final int DATA_HEADER_SIZE = (DATA + "@" + DATA + "@").getBytes(StandardCharsets.UTF_8).length; // TODO: MACRO IN METHOD..2 char's + 2 int's.
     public static final int DATA_CONTENT_SIZE = PACKET_SIZE - DATA_HEADER_SIZE;
     public static final int BUFFER_SIZE = 1024;
     public static final int ACK_BUFFER = 8;
