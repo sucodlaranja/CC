@@ -1,20 +1,16 @@
 package FTRapid;
 
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
+
 import Listener.Listener;
 import Syncs.SyncInfo;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.spec.SecretKeySpec;
-import java.io.IOException;
-import java.net.*;
-import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.Key;
-import java.security.NoSuchAlgorithmException;
-
+/// (descricao breve se quiseres (recomendo))
 /**
  * Constructor receives datagram packet and transforms byte stream to readable and accessible information.
  *
@@ -34,8 +30,8 @@ public class FTRapidPacket {
     public static final int DATA_CONTENT_SIZE = PACKET_SIZE - DATA_HEADER_SIZE;
     public static final int BUFFER_SIZE = 1024;
 
-    // This is the sequence number used to aknowledge a control packet.
-    // DATA packets are aknowledge with sequence numbers 0/1.
+    ///This is the sequence number used to aknowledge a control packet.
+    /// DATA packets are aknowledge with sequence numbers 0/1.
     public static final int CONTROL_SEQ_NUM = 2;
 
     public final static int ERROR = -1;
@@ -184,22 +180,22 @@ public class FTRapidPacket {
         this.dataBytes = data;
     }
 
-    // GET ACK packet: 0@
+    /// GET ACK packet: 0@
     public static DatagramPacket getACKPacket(InetAddress ADDRESS, int PORT, int sequenceNumber){
         byte[] packetB = (ACK + "@" + sequenceNumber + "@").getBytes(StandardCharsets.UTF_8);
         return new DatagramPacket(packetB, packetB.length, ADDRESS, PORT);
     }
-    // GET INIT packet: 1@random@filename@ => sends always to listener port and peer id saved in syncInfo.
+    /// GET INIT packet: 1@random@filename@ => sends always to listener port and peer id saved in syncInfo.
     public static DatagramPacket getINITPacket(int random, SyncInfo syncInfo){
         byte[] packetBytes = (FTRapidPacket.INIT + "@" + random + "@" + syncInfo.getFilename() + "@").getBytes(StandardCharsets.UTF_8);
         return new DatagramPacket(packetBytes, packetBytes.length, syncInfo.getIpAddress(), Listener.LISTENER_PORT);
     }
-    // GET INIT_ACK packet: 2@filename@ => always sends to listener port and peer id saved in syncInfo.
+    /// GET INIT_ACK packet: 2@filename@ => always sends to listener port and peer id saved in syncInfo.
     public static DatagramPacket getINITACKPacket(SyncInfo syncInfo){
         byte[] packetBytes = (FTRapidPacket.INIT_ACK + "@" + syncInfo.getFilename() + "@").getBytes(StandardCharsets.UTF_8);
         return new DatagramPacket(packetBytes, packetBytes.length, syncInfo.getIpAddress(), Listener.LISTENER_PORT);
     }
-    // Get META packet: 3@mode@size@ or 3@mode@size@filename@
+    /// Get META packet: 3@mode@size@ or 3@mode@size@filename@
     public static DatagramPacket getMETAPacket(InetAddress ADDRESS, int PORT, int MODE, int size, String filename){
         // Information we need to send: MODE, data-size, filename (if needed).
         String metaStr;
@@ -216,7 +212,7 @@ public class FTRapidPacket {
         byte[] metaBytes = metaStr.getBytes(StandardCharsets.UTF_8);
         return new DatagramPacket(metaBytes, metaBytes.length, ADDRESS, PORT);
     }
-    // Get DATA packet: 4@seqNum@data
+    /// Get DATA packet: 4@seqNum@data
     public static DatagramPacket getDATAPacket(InetAddress ADDRESS, int PORT, int seqNum, byte[] data){
         // DATA packet header info.
         byte[] dataHeader = (DATA + "@" + seqNum + "@").getBytes(StandardCharsets.UTF_8);
@@ -228,7 +224,7 @@ public class FTRapidPacket {
 
         return new DatagramPacket(finalData, finalData.length, ADDRESS, PORT);
     }
-    // Get RQF packet: 5@filename@
+    /// Get RQF packet: 5@filename@
     public static DatagramPacket getRQFPacket(InetAddress ADDRESS, int PORT, String filename){
         byte[] packetB = (RQF + "@" + filename + "@").getBytes(StandardCharsets.UTF_8);
         return new DatagramPacket(packetB, packetB.length, ADDRESS, PORT);

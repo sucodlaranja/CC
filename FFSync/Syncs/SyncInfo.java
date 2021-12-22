@@ -1,14 +1,28 @@
 package Syncs;
 
 import java.net.InetAddress;
-
+ /// (descricao breve se quiseres (recomendo))
+ /**
+  * (descricao)
+  */
 public class SyncInfo {
-    private final String filepath;          // "/home/rubensas/sync_folder" : without the final "/".
-    private final String filename;          // Name of the sync folder: "sync_folder", from the above example.
-    private final InetAddress ipAddress;    // IP Address of the other peer.
-    private final int id;                   // Sync ID: used to identify this sync.
-    private boolean active;                 // True if the sync is transfering files to another peer.
-
+    /// "/home/rubensas/sync_folder" : without the final "/".
+    private final String filepath;
+    /// Name of the sync folder: "sync_folder", from the above example.          
+    private final String filename;    
+    /// IP Address of the other peer.
+    private final InetAddress ipAddress;
+    /// Sync ID: used to identify this sync.    
+    private final int id;
+    /// True if the sync is transfering files to another peer.                   
+    private boolean active; 
+    
+     /// (descricao breve se quiseres)
+    /**
+     * (descricao)
+     * @param filepath
+     * @param ipAddress
+     */
     public SyncInfo(String filepath, InetAddress ipAddress){
         // "home/rubensas/sync_folder/" to "home/rubensas/sync_folder"
         this.filepath = filepath.endsWith("/") ? filepath.substring(0, filepath.length() - 1) : filepath;

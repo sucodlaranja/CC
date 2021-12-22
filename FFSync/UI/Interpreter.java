@@ -1,6 +1,5 @@
 package UI;
 
-import Syncs.Syncs;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
@@ -8,6 +7,11 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Scanner;
 
+import Syncs.Syncs;
+ /// (descricao breve se quiseres (recomendo))
+ /**
+  * (descricao)
+  */
 public class Interpreter implements Runnable{
 
     private final String firstCommandFilePath;

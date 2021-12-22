@@ -1,35 +1,36 @@
 package FTRapid;
 
 
-import Logs.TransferLogs;
-
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.KeyPair;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+
+import Logs.TransferLogs;
 
 public class ReceiverSNW {
 
-    // Data will be sent from this socket to the address and port bellow.
+    /// Data will be sent from this socket to the address and port bellow.
     private final DatagramSocket socket;
     private final InetAddress ADDRESS;
-    private int PORT; // starts as listenerPort and then represents senders port.
+    /// starts as listenerPort and then represents senders port.
+    private int PORT; 
 
-    // Mode can be FILE, LOGS or GUIDE.
+    /// Mode can be FILE, LOGS or GUIDE.
     private final int MODE;
 
-    // Filename/path.
+    /// Filename/path.
     private final String filepath;
     private final String filename;
 
-    // Requesting and receiving files.
+    /// Requesting and receiving files.
     public ReceiverSNW(InetAddress address, int handlerPort, String filepath, String filename){
 
         // Local vars.
@@ -52,7 +53,7 @@ public class ReceiverSNW {
         this.PORT = handlerPort;
     }
 
-    // LOGS and GUIDE.
+    /// LOGS and GUIDE.
     public ReceiverSNW(DatagramSocket socket, int MODE, InetAddress address, int handlerPort){
         this.socket = socket;
         this.MODE = MODE;
@@ -62,8 +63,8 @@ public class ReceiverSNW {
         this.filepath = "";
     }
 
-    // Request the file to the other peer. Sending packet to the transfer handler listener.
-    // Wait and approve META by sending an ACK packet to the sender socket.
+    /// Request the file to the other peer. Sending packet to the transfer handler listener.
+    /// Wait and approve META by sending an ACK packet to the sender socket.
     public List<Object> requestAndReceive() {
 
         DatagramPacket packet2beSent = null;

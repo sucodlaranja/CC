@@ -1,16 +1,17 @@
 package FTRapid;
 
-import Logs.TransferLogs;
-
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.*;
-import java.nio.file.Files;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
 import java.nio.file.NoSuchFileException;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import Logs.TransferLogs;
+/// (descricao breve se quiseres (recomendo))
 /**
  * Used to send DATA packets. DATA packets can contain a portion of a file, a Log or a Guide.
  * To send a file we only need its path. The path must be given to the constructor.
@@ -19,24 +20,24 @@ import java.util.List;
  * */
 public class SenderSNW {
 
-    // Mode of operation (can be FILE, LOG, GUIDE).
+    /// Mode of operation (can be FILE, LOG, GUIDE).
     public final int MODE;
 
-    // Filepath (if needed).
+    /// Filepath (if needed).
     private final String FILEPATH;
 
-    // Data to be sent.
+    /// Data to be sent.
     private final byte[] dataToSend;
 
-    // Data will be sent from this socket to the address bellow.
+    /// Data will be sent from this socket to the address bellow.
     private final DatagramSocket socket;
     private final InetAddress ADDRESS;
     private final int PORT;
 
-    // Check if sender constructor did its job correctly.
+    /// Check if sender constructor did its job correctly.
     private boolean allOK;
 
-    // Sending File
+    /// Sending File
     public SenderSNW(InetAddress address, int PORT, String filepath){
         // Local variables.
         DatagramSocket localSocket = null;
@@ -80,7 +81,7 @@ public class SenderSNW {
         }
     }
 
-    // Sending LOG or GUIDE.
+    /// Sending LOG or GUIDE.
     public SenderSNW(DatagramSocket socket, InetAddress address, int PORT, byte[] data, int mode){
         this.socket = socket;
         this.ADDRESS = address;
