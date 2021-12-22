@@ -17,6 +17,7 @@ import java.net.*;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -35,6 +36,8 @@ public class SyncHandler implements Runnable{
 
     private final TransferHistory syncHistory;
 
+    private LogsManager ourLogs;
+
     public SyncHandler(String filepath, InetAddress address){
         // SyncInfo stores important information about this sync.
         this.syncInfo = new SyncInfo(filepath, address);
@@ -44,6 +47,8 @@ public class SyncHandler implements Runnable{
         this.randomNumberPacket = FTRapidPacket.getINITPacket(this.ourRandom, this.syncInfo);
 
         this.syncHistory = new TransferHistory();
+
+        this.ourLogs = null;
     }
 
     // ourRandom < peerRandom
@@ -62,10 +67,9 @@ public class SyncHandler implements Runnable{
         this.isBiggerNumber = false;
 
         // Calculate logs
-        LogsManager logsManager = null;
         try {
-            logsManager = new LogsManager(this.syncInfo.getFilepath());
-            this.syncHistory.updateLogs(logsManager.getLogs());
+            this.ourLogs = new LogsManager(this.syncInfo.getFilepath());
+            this.syncHistory.updateLogs(this.ourLogs.getLogs());
             this.syncHistory.saveTransferHistory(HTTPServer.HTTP_FILEPATH + "/" + this.syncInfo.getFilename() + "-" + this.syncInfo.getId());
         }
         catch (IOException e){
@@ -73,8 +77,10 @@ public class SyncHandler implements Runnable{
             e.printStackTrace();
         }
 
+
+
         // Abort sync if the LOGS can't be created.
-        if(logsManager == null)
+        if(this.ourLogs == null)
             return null; // ABORT SYNC = null.
 
         // Create INIT_ACK packet (default port is LISTENER).
@@ -87,7 +93,7 @@ public class SyncHandler implements Runnable{
             return null;
 
         // Serialize logs.
-        byte[] logs = logsManager.getBytes();
+        byte[] logs = this.ourLogs.getBytes();
 
         // Send logs to peer handler port.
         SenderSNW senderSNW = new SenderSNW(this.syncSocket, this.syncInfo.getIpAddress(), this.handlerPort, logs, FTRapidPacket.LOGS);
@@ -133,20 +139,22 @@ public class SyncHandler implements Runnable{
 
         // Get our logs.
         // Calculate logs
-        LogsManager alfa;
+        // Calculate logs
+
         try {
-            alfa = new LogsManager(this.syncInfo.getFilepath());
-            this.syncHistory.updateLogs(alfa.getLogs());
+            this.ourLogs = new LogsManager(this.syncInfo.getFilepath());
+            this.syncHistory.updateLogs(this.ourLogs.getLogs());
             this.syncHistory.saveTransferHistory(HTTPServer.HTTP_FILEPATH + "/" + this.syncInfo.getFilename() + "-" + this.syncInfo.getId());
         }
-        catch (IOException e){
+        catch (IOException e) {
             System.out.println("Failed to create logs from: " + this.syncInfo.getFilepath());
             e.printStackTrace();
-            return null;
         }
 
+
+
         // Calculate Guide.
-        Guide guide = new Guide(alfa.getLogs(), beta.getLogs());
+        Guide guide = new Guide(this.ourLogs.getLogs(), beta.getLogs());
 
         // Send guide.
         SenderSNW senderSNW = new SenderSNW(this.syncSocket, this.getInfo().getIpAddress(), this.handlerPort, guide.getBytes(), FTRapidPacket.GUIDE);
@@ -214,6 +222,17 @@ public class SyncHandler implements Runnable{
             TransferHandler transferHandler = new TransferHandler(5, guide, this.syncInfo.getFilepath(), this.syncSocket, this.syncInfo.getIpAddress(), this.handlerPort, this.isBiggerNumber);
             Set<TransferLogs> transfers = transferHandler.processTransfers();
 
+
+            // Calculate logs and updating file.
+            if(this.ourLogs != null) {
+                try {
+                    this.ourLogs.updateFileLogs();
+                    this.syncHistory.updateLogs(this.ourLogs.getLogs());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
             // History
             this.syncHistory.updateGuide(transfers);
             try {
@@ -221,7 +240,6 @@ public class SyncHandler implements Runnable{
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         }
         System.out.println("one_sync_finished"); // TODO: REMOVE
     }
@@ -236,6 +254,9 @@ public class SyncHandler implements Runnable{
             // Sync folders with the other peer until the socket closes.
             while(!this.syncSocket.isClosed()){
                 this.syncOnce();
+
+                //TODO
+                TimeUnit.SECONDS.sleep(10);
                 // TODO: checkar logs a ver se foram updated
             }
 
@@ -244,6 +265,8 @@ public class SyncHandler implements Runnable{
         }
         catch (SocketException e) {
             System.out.println("Failed to create socket in sync " + this.syncInfo.getId() + ".");
+            e.printStackTrace();
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }

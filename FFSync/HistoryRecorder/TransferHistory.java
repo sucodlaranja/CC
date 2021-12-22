@@ -52,9 +52,13 @@ public class TransferHistory implements Serializable {
     }
 
     public void updateGuide(Set<TransferLogs> transfers){
-        for(TransferLogs fileTransfer:transfers)
-            files.replace(fileTransfer.fileName(),
-                    new FileTransferHistory(null,fileTransfer.elapsedTime(),fileTransfer.bitsPSeg()));
+        for(TransferLogs fileTransfer:transfers) {
+            FileTransferHistory fileTransferHistory;
+            if ( (fileTransferHistory = files.get(fileTransfer.fileName())) != null) {
+                fileTransferHistory.setTimeOfTransfer(fileTransfer.elapsedTime());
+                fileTransferHistory.setBitsPSeg(fileTransfer.bitsPSeg());
+            }
+        }
     }
 
     public void saveTransferHistory(String filepath) throws IOException {

@@ -26,7 +26,7 @@ public class Guide {
             String name = logsStrArr[i];
             boolean isSender = Boolean.parseBoolean(logsStrArr[i+1]);
             long elapsedTime = Long.parseLong(logsStrArr[i+2]);
-            long bitsPSeg = Long.parseLong(logsStrArr[i+3]);
+            double bitsPSeg = Double.parseDouble(logsStrArr[i+3]);
             this.guide.add(new TransferLogs(name, isSender,elapsedTime,bitsPSeg));
         }
     }
