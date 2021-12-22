@@ -136,7 +136,7 @@ public class SenderSNW {
 
         // Printing stats
         long elapsedTime = end - start;
-        double bitsPSeg = ((this.dataToSend.length) * 0.001  / (elapsedTime * Math.pow(10, -9)));
+        double bitsPSeg = ((this.dataToSend.length * 0.001)  / (elapsedTime * 0.001)); // bytes por segundo
         System.out.println(this.FILEPATH + " was sent in " + elapsedTime + " mili seconds.");
         System.out.println("Average speed of " + bitsPSeg + " KB/s");
 

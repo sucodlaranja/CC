@@ -155,12 +155,10 @@ public class ReceiverSNW {
         }
 
 
-
         System.out.println(this.filepath + " was received."); // TODO: REMOVE
 
-
         long elapsedTime = end - start;
-        double bitsPSeg = ((fileBytes.length) * 0.001  / (elapsedTime * Math.pow(10, -9)));
+        double bitsPSeg = ((fileBytes.length * 0.001)  / (elapsedTime * 0.001)); // bytes por segundo
 
         List<Object> retList = new ArrayList<>(2);
         retList.add(0,fileBytes.clone());
