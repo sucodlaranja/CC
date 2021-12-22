@@ -155,11 +155,13 @@ public class HTTPServer implements Runnable {
      * @throws IOException
      * @throws ClassNotFoundException
      */
-    public String getSync(String filename) throws IOException, ClassNotFoundException {
-       
-        TransferHistory history = new TransferHistory(filename);
-        return history.toHTML();
-      
+    public String getSync(String filename)  {
+        try {
+            TransferHistory history = new TransferHistory(filename);
+            return history.toHTML();
+        } catch(IOException | ClassNotFoundException e) {
+            return "<h2>Information about this sync does not exist</h2>";
+        }
     }
 
     /**
