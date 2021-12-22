@@ -61,46 +61,51 @@ public class HTTPServer implements Runnable {
      */
     public void run() {
         boolean closed = true;
-            while(!serverSocket.isClosed() && closed) {
-                try {
-                    Socket clientSocket = serverSocket.accept();
+        while(!serverSocket.isClosed() && closed) {
+            try {
+                Socket clientSocket = serverSocket.accept();
 
-                    BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                    String s;
-                    String[] newString = null;
-                    while ((s = in.readLine()) != null) {
-                        newString = s.split(" ");
+                BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                String s;
+                String[] newString;
+                String[] control = null;
+                while ((s = in.readLine()) != null && !s.isEmpty()) {
+                    newString = s.split(" ");
 
-                        if (newString[0] != null && newString[0].equals("GET")) {
-                            break;
-                        }
+                    if (newString[0] != null && newString[0].equals("GET")) {
+                        control = newString.clone();
                     }
 
+                }
+
+                if(control != null) {
                     OutputStream out = clientSocket.getOutputStream();
                     out.write("HTTP/1.1 200 OK\r\n".getBytes());
                     out.write("\r\n".getBytes());
-                    if (s != null) getHandler(newString[1], out);                                        //handler
+                    if (s != null) getHandler(control[1], out);                                        //handler
                     out.write("\r\n\r\n".getBytes());
 
                     out.flush();
                     out.close();
-                    in.close();
                 }
-                catch (SocketException e){
-                    System.err.println("HTTP SERVER CLOSED");
-                    closed = false;
-                }
-                catch(IOException | ClassNotFoundException e) {
-                    e.printStackTrace();
-                }
-        }
 
+                in.close();
+            }
+            catch (SocketException e) {
+                System.err.println("HTTP SERVER CLOSED");
+                closed = false;
+                e.printStackTrace(); // TODO: fica?
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
 
 
         try {
             Files.list(Paths.get(HTTP_FILEPATH)).map(Path :: toFile).forEach(File :: delete);
             Files.delete(Paths.get(HTTP_FILEPATH));
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             e.printStackTrace();
         }
 
