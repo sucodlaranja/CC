@@ -96,7 +96,6 @@ public class HTTPServer implements Runnable {
         else if(splitArgument.length == 2) {
             out.write(("<h1>" + splitArgument[1] + "</h1>").getBytes());
             out.write(("<a href=\"http://localhost:" + port + "\">back</a>").getBytes());
-            //out.write((getSync("onomedofile")).getBytes());
             out.write((getSync(HTTP_FILEPATH + "/" + splitArgument[1])).getBytes());
         }
         

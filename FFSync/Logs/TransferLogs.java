@@ -1,13 +1,10 @@
 package Logs;
 
+import java.nio.file.attribute.FileTime;
+
 /**
  * Represents entry of a transfer.
  */
-public record TransferLogs(String fileName, boolean sender) {
+public record TransferLogs(String fileName, boolean sender, long elapsedTime, double bitsPSeg) {
 
-    // Name of the file
-    public String getFileName() {return fileName;}
-
-    // Indicates if this file is to be sent or received
-    public boolean isSender() {return sender;}
 }

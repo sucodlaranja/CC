@@ -1,5 +1,11 @@
 package Transfers;
 
+import Logs.Guide;
+import Logs.TransferLogs;
+
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -15,13 +21,14 @@ public class ThreadPool{
      and will increase by each thread that ends.
      */
     private int nMaxThreads;
-
+    private Set<TransferLogs> completedTransfers;
     private final ReentrantLock lock;
     private final Condition condition;
 
     // Basic Constructor
     public ThreadPool(int nMaxThreads) {
         this.nMaxThreads = nMaxThreads;
+        this.completedTransfers = new HashSet<>();
         this.lock = new ReentrantLock();
         this.condition = lock.newCondition();
     }
@@ -38,6 +45,24 @@ public class ThreadPool{
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {
+            lock.unlock();
+        }
+    }
+
+    public void addTransferLogs(TransferLogs transferLogs){
+        lock.lock();
+        try {
+           completedTransfers.add(transferLogs);
+        }  finally {
+            lock.unlock();
+        }
+    }
+
+    public Set<TransferLogs> getTransferLogs(){
+        lock.lock();
+        try {
+            return new HashSet<>(completedTransfers);
+        }  finally {
             lock.unlock();
         }
     }

@@ -1,6 +1,8 @@
 package FTRapid;
 
 
+import Logs.TransferLogs;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -8,6 +10,7 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.KeyPair;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -61,7 +64,7 @@ public class ReceiverSNW {
 
     // Request the file to the other peer. Sending packet to the transfer handler listener.
     // Wait and approve META by sending an ACK packet to the sender socket.
-    public byte[] requestAndReceive() {
+    public List<Object> requestAndReceive() {
 
         DatagramPacket packet2beSent = null;
         if(this.MODE == FTRapidPacket.FILE)
@@ -90,6 +93,7 @@ public class ReceiverSNW {
         // Change PORT
         this.PORT = meta_FTRapidPacket.getPort();
 
+        long start = System.currentTimeMillis();
 
         // First Acknowledgement is for the META packet.
         // Wait and receive DATA packets and send ACK packets with respective sequence numbers.
@@ -109,6 +113,8 @@ public class ReceiverSNW {
             // Change previous sequence number.
             prevSeqNum = prevSeqNum == 0? 1 : 0;
         }
+
+        long end = System.currentTimeMillis();
 
         // Acknowledge last data packet - only once.
         // If the message doesn't get through, the sender will still be able to finish.
@@ -148,9 +154,21 @@ public class ReceiverSNW {
             }
         }
 
+
+
         System.out.println(this.filepath + " was received."); // TODO: REMOVE
 
-        return fileBytes.clone();
+
+        long elapsedTime = end - start;
+        double bitsPSeg = ((fileBytes.length) / (elapsedTime * Math.pow(10, -9))) * 8;
+
+        List<Object> retList = new ArrayList<>(2);
+        retList.add(0,fileBytes.clone());
+        retList.add(1,new TransferLogs(this.filename,false,elapsedTime,bitsPSeg));
+
+
+
+        return retList;
     }
 
     private byte[] collapse(List<byte[]> packetsSplit, int LAST_PACKET_DATA_SIZE) {
