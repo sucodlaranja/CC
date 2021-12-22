@@ -1,7 +1,5 @@
 package Listener;
 
-import FTRapid.FTRapidPacket;
-
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -13,6 +11,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
+import FTRapid.FTRapidPacket;
+
+ /// (descricao breve se quiseres)
+ /**
+  * (descricao)
+  */
 public class Listener implements Runnable{
 
     public static final int LISTENER_PORT = 8000;   // Default value for the socket port.
@@ -33,11 +37,15 @@ public class Listener implements Runnable{
     }
 
     /**
-     * Checks requests from other peers.
+     *  * Checks requests from other peers.
      * Sends feedback to the respective SyncHandler (locking Set required).
      * Possible feedback is explained above.
      * Packets found in rcvFTRapidPackets: INIT, INIT_ACK.
-     * */
+     * @param filename
+     * @param peerAddress
+     * @param ourRandom
+     * @return
+     */
     public static List<Integer> checkPendingRequests(String filename, InetAddress peerAddress, Integer ourRandom){
         // Contains: feedback at i=0 and, if we receive INIT_ACK, peer handler port at i=1.
         ArrayList<Integer> return_value = new ArrayList<>();
@@ -136,7 +144,7 @@ public class Listener implements Runnable{
         System.err.println("Listener is offline.");
     }
 
-    // Close listener socket.
+    /// Close listener socket.
     public void closeSocket(){
         lock.lock();
         try{

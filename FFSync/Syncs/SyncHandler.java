@@ -1,5 +1,15 @@
 package Syncs;
 
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import FTRapid.FTRapidPacket;
 import FTRapid.ReceiverSNW;
 import FTRapid.SenderSNW;
@@ -11,15 +21,7 @@ import Logs.LogsManager;
 import Logs.TransferLogs;
 import Transfers.TransferHandler;
 
-import javax.xml.crypto.Data;
-import java.io.IOException;
-import java.net.*;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-
+ /// (descricao breve se quiseres)
 /**
  * Handle each sync with another peer.
  * */
@@ -30,14 +32,19 @@ public class SyncHandler implements Runnable{
 
     private final Integer ourRandom;
     private final DatagramPacket randomNumberPacket;
-
-    private boolean isBiggerNumber; // ourRandom > peerRandom?
-    private int handlerPort;        // Socket Port of syncHandler's peer.
+    /// ourRandom > peerRandom?
+    private boolean isBiggerNumber;
+    /// Socket Port of syncHandler's peer. 
+    private int handlerPort;        
 
     private final TransferHistory syncHistory;
 
     private LogsManager ourLogs;
-
+    /**
+     * (descricao)
+     * @param filepath
+     * @param address
+     */
     public SyncHandler(String filepath, InetAddress address){
         // SyncInfo stores important information about this sync.
         this.syncInfo = new SyncInfo(filepath, address);
@@ -51,8 +58,11 @@ public class SyncHandler implements Runnable{
         this.ourLogs = null;
     }
 
-    // ourRandom < peerRandom
-    // returns true if sync has to be aborted, false if sync can proceed.
+    /// (descricao breve se quiseres) ourRandom < peerRandom
+    /**
+     * (descricao)
+     * @return returns true if sync has to be aborted, false if sync can proceed.
+     */
     private Guide inferiorRandomHandler() {
         /*
         calculate logs
@@ -110,7 +120,7 @@ public class SyncHandler implements Runnable{
         return guideBytes == null? null : new Guide(guideBytes); // ABORT SYNC = FALSE.
     }
 
-    // ourRandom > peerRandom
+    /// (descricao breve se quiseres) ourRandom > peerRandom
     private Guide superiorRandomHandler() {
         // found INIT_ACK
         /*

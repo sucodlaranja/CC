@@ -1,9 +1,10 @@
 package Syncs;
 
 import java.net.InetAddress;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
-
+ /// (descricao breve se quiseres (recomendo))
 /**
  * goal: save all clients sync information.
  * (accessed by Listener.Listener and Handler)
