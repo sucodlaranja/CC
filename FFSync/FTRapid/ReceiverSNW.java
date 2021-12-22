@@ -160,13 +160,11 @@ public class ReceiverSNW {
 
 
         long elapsedTime = end - start;
-        double bitsPSeg = ((fileBytes.length) / (elapsedTime * Math.pow(10, -9))) * 8;
+        double bitsPSeg = ((fileBytes.length) * 0.001  / (elapsedTime * Math.pow(10, -9)));
 
         List<Object> retList = new ArrayList<>(2);
         retList.add(0,fileBytes.clone());
         retList.add(1,new TransferLogs(this.filename,false,elapsedTime,bitsPSeg));
-
-
 
         return retList;
     }

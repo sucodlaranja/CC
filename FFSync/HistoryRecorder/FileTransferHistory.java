@@ -47,8 +47,11 @@ public class FileTransferHistory implements Serializable {
         html.append("<h3>" + filename + "</h3>");
         if (this.lastUpdated != -1) {
             html.append("<p>&nbsp&nbsp&nbsp<i>Last Updated: </i>" + FileTime.fromMillis(this.lastUpdated) + "</p>");
-            html.append("<p>&nbsp&nbsp&nbsp<i>Time of Transfer: </i>" + this.timeOfTransfer + "s</p>");
-            html.append("<p>&nbsp&nbsp&nbsp<i>Bits Per Second: </i>" + this.bitsPSeg + "</p>");
+            if (this.timeOfTransfer != -1) {
+                html.append("<p>&nbsp&nbsp&nbsp<i>Time of Transfer: </i>" + this.timeOfTransfer + "ms</p>");
+                html.append("<p>&nbsp&nbsp&nbsp<i>Bits Per Second: </i>" + this.bitsPSeg + "Kbps</p>");
+            }
+            else html.append("<p>&nbsp&nbsp&nbsp<i>No Transfer yet </i> </p>");
         }
         else html.append("<p>&nbsp&nbsp&nbsp<i>No Update yet </i> </p>");
         return html.toString();
