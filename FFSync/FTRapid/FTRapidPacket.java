@@ -3,9 +3,17 @@ package FTRapid;
 import Listener.Listener;
 import Syncs.SyncInfo;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * Constructor receives datagram packet and transforms byte stream to readable and accessible information.
@@ -35,6 +43,7 @@ public class FTRapidPacket {
     public final static int LOGS = 1;
     public final static int GUIDE = 2;
 
+    public static byte[] DEFAULT_MUTUAL_SECRET = "x!A%D*G-KaPdSgVk".getBytes();
 
     private final InetAddress peerAddress;
     private final Integer key;
@@ -45,7 +54,7 @@ public class FTRapidPacket {
     private final int filesize;
     private final int sequenceNumber;
     private final String filename;
-    private final byte[] dataBytes;
+    private byte[] dataBytes; // todo: make final
 
     public FTRapidPacket(FTRapidPacket ftRapidPacket){
         this.peerAddress = ftRapidPacket.getPeerAddress();
@@ -102,7 +111,7 @@ public class FTRapidPacket {
         else if(tempOpcode == DATA){
             if(local_transferMODE == FILE)
                 local_sequenceNumber = Integer.parseInt(data[1]);
-            local_dataBytes = dataStr.split("@", 3)[2].getBytes(StandardCharsets.UTF_8);
+            local_dataBytes = dataStr.split("@", 3)[2].getBytes();
         }
         else if(tempOpcode == RQF){
             local_filename = data[1];
@@ -170,6 +179,11 @@ public class FTRapidPacket {
         return this.dataBytes;
     }
 
+    // TODO: REMOVE
+    public void setDataBytes(byte[] data){
+        this.dataBytes = data;
+    }
+
     // GET ACK packet: 0@
     public static DatagramPacket getACKPacket(InetAddress ADDRESS, int PORT, int sequenceNumber){
         byte[] packetB = (ACK + "@" + sequenceNumber + "@").getBytes(StandardCharsets.UTF_8);
@@ -224,12 +238,12 @@ public class FTRapidPacket {
     public static DatagramPacket sendAndWait(DatagramSocket socket, DatagramPacket packet) {
         try {
             if(packet != null)
-                socket.send(packet);
+                socket.send(encode(packet, DEFAULT_MUTUAL_SECRET));
 
             byte[] receiveData = new byte[FTRapidPacket.BUFFER_SIZE];
             DatagramPacket received = new DatagramPacket(receiveData, receiveData.length);
             socket.setSoTimeout(3500);
-            socket.receive(received);
+            socket.receive(decode(received, DEFAULT_MUTUAL_SECRET));
 
             return new DatagramPacket(received.getData(), received.getLength(), received.getAddress(), received.getPort());
         }
@@ -258,6 +272,25 @@ public class FTRapidPacket {
             if(received != null) {
                 ftRapidPacket = new FTRapidPacket(received, MODE);
 
+                // todo: remove
+                if(MODE == FILE && OPCODE == DATA){
+                    String dataStr = new String(received.getData(), StandardCharsets.UTF_8);
+
+                    int i = 0;
+                    int c = 0;
+                    for(; i < dataStr.length() && c < 2; ++i){
+                        if(dataStr.charAt(i) == '@'){
+                            c++;
+                        }
+                    }
+
+                    byte[] goodData = new byte[dataStr.length() - i];
+                    System.arraycopy(received.getData(), i, goodData, 0, goodData.length);
+
+
+                    ftRapidPacket.setDataBytes(goodData);
+                }
+
                 if (!diff
                         && ftRapidPacket.getOPCODE() == OPCODE
                         && ftRapidPacket.getTransferMODE() == MODE
@@ -282,7 +315,50 @@ public class FTRapidPacket {
             }
         }
 
+
         return ftRapidPacket == null? null : new FTRapidPacket(ftRapidPacket);
+    }
+
+
+    public static DatagramPacket encode(DatagramPacket packet, byte[] secret){
+        return packet;
+        /*
+        // Encode data.
+        byte[] data = packet.getData();
+        byte[] encryptedData;
+        try {
+            Key AES_KEY = new SecretKeySpec(secret, "AES");
+            Cipher senderCipher = Cipher.getInstance("AES");
+            senderCipher.init(Cipher.ENCRYPT_MODE, AES_KEY);
+            encryptedData = senderCipher.doFinal(data);
+        }
+        catch (NoSuchAlgorithmException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | NoSuchPaddingException e){
+            e.printStackTrace();
+            encryptedData = data;
+        }
+
+        return new DatagramPacket(encryptedData, encryptedData.length, packet.getAddress(), packet.getPort());
+        */
+    }
+
+    public static DatagramPacket decode(DatagramPacket packet, byte[] secret) {
+        return packet;
+        /*
+        byte[] dataBytes = packet.getData();
+        byte[] decrypted;
+        try {
+            Key AES_KEY = new SecretKeySpec(secret, "AES");
+
+            Cipher receiverCipher = Cipher.getInstance("AES");
+            receiverCipher.init(Cipher.DECRYPT_MODE, AES_KEY);
+            decrypted = receiverCipher.doFinal(dataBytes);
+        }
+        catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException |IllegalBlockSizeException | BadPaddingException e){
+            e.printStackTrace();
+            decrypted = dataBytes;
+        }
+
+        return new DatagramPacket(decrypted, decrypted.length, packet.getAddress(), packet.getPort());*/
     }
 
 

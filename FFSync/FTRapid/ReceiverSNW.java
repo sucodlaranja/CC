@@ -114,7 +114,7 @@ public class ReceiverSNW {
         // If the message doesn't get through, the sender will still be able to finish.
         DatagramPacket ACK = FTRapidPacket.getACKPacket(ADDRESS, PORT, prevSeqNum);
         try {
-            this.socket.send(ACK);
+            this.socket.send(FTRapidPacket.encode(ACK, FTRapidPacket.DEFAULT_MUTUAL_SECRET));
         }
         catch (IOException e){
             e.printStackTrace();

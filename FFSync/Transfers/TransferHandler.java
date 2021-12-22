@@ -66,7 +66,7 @@ public class TransferHandler {
             DatagramPacket received = new DatagramPacket(receiveData, receiveData.length);
             try {
                 syncSocket.setSoTimeout(5000);
-                syncSocket.receive(received);
+                syncSocket.receive(FTRapidPacket.decode(received, FTRapidPacket.DEFAULT_MUTUAL_SECRET));
             }
             catch (SocketTimeoutException e){
                 System.out.println("TransferHandler Listener timedout.");

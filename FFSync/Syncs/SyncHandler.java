@@ -161,7 +161,7 @@ public class SyncHandler implements Runnable{
                 case 0 -> {
                     // Send random number to other peer.
                     try {
-                        this.syncSocket.send(this.randomNumberPacket);
+                        this.syncSocket.send(FTRapidPacket.encode(this.randomNumberPacket, FTRapidPacket.DEFAULT_MUTUAL_SECRET));
                     }
                     catch (SocketException e){
                         System.out.println("SyncSocket closed.");
