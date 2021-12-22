@@ -20,7 +20,7 @@ import HistoryRecorder.TransferHistory;
 /**
  * This class creates, controls and maintains the http Server, implements \b Runnable so that we can run this code in a separated thread. \n
  * Contains one constructor \b HTTPServer(int port) that initializes the serversocket, and creates the \ref HTTP_FILEPATH directory. \n
- * This server is running along side it the program, receives requests from clients and gives information about the \b syncs that are happening. \n
+ * This server is running alongside it the program, receives requests from clients and gives information about the \b syncs that are happening. \n
  * The server has a Main Menu that contains all the names of the folders that are in sync, the client have the option to click in one of the names,
  * and will be redirected to a new page, that contains all files from that sync with some information about each one.
  */

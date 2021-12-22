@@ -1,14 +1,14 @@
 package HistoryRecorder;
 
 import java.io.*;
-import java.nio.file.attribute.FileTime;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
+
 import java.util.Set;
-import java.util.stream.Collectors;
+
 
 import Logs.LogsRecord;
 import Logs.TransferLogs;
@@ -39,7 +39,7 @@ public class TransferHistory implements Serializable {
             LogsRecord fileTransferHistory;
             if( (fileTransferHistory = logs.remove(file.getKey())) != null) {
                 long time = fileTransferHistory.fileTime().toMillis();
-                if (time > file.getValue().getFileTime()) file.getValue().setLastUpdated(time);
+                if (time > file.getValue().getLastUpdated()) file.getValue().setLastUpdated(time);
             }
             else remove.add(file.getKey());
         }
