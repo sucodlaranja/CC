@@ -23,7 +23,7 @@ public class ThreadPool{
     /// Basic Condition.
     private final Condition condition;
 
-    // Basic Constructor
+    /// Basic Constructor
     public ThreadPool(int nMaxThreads) {
         this.nMaxThreads = nMaxThreads;
         this.completedTransfers = new HashSet<>();
@@ -63,7 +63,7 @@ public class ThreadPool{
     }
 
     /**
-     * Compare the number of maxThreadsAllowed to the number of nMaxThreads (number of thread spaces still free)
+     * Compare the number of maxThreadsAllowed to the number of nMaxThreads (number of thread spaces still free). \n
      * Waits until all the number hits it´s maximum. It means that all threads created finish.
      * @param maxThreadsAllowed Number of maximum threads.
      */
@@ -81,10 +81,10 @@ public class ThreadPool{
 
 
     /**
-     * Increases and decreases the number of max allowed threads.
-     * If the number decreases 0 then it makes \ref TransferHandler
-     * wait for a signal because there is no more threads available to transfer files.
-     * If the number increases to 1, it means that the \ref TransferHandler is sleeping, and we need to wake it up
+     * Increases and decreases the number of max allowed threads. \n
+     * If the number decreases 0 then it makes \ref TransferHandler. \n
+     * wait for a signal because there is no more threads available to transfer files. \n
+     * If the number increases to 1, it means that the \ref TransferHandler is sleeping, and we need to wake it up. \n
      * , because there is room for more threads.
      *
      * @param incOrDec could be 1 or -1. Will determine what we will do.

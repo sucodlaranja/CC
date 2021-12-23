@@ -58,7 +58,7 @@ public class LogsManager {
         return sb.toString().getBytes(StandardCharsets.UTF_8);
     }
 
-    // Basic getLogs method.
+    /// Basic getLogs method.
     public Map<String, LogsRecord> getLogs(){
         return new HashMap<>(logs);
     }
@@ -77,7 +77,7 @@ public class LogsManager {
      * @param prePath An auxiliar to the recursive call.
      * @throws IOException IO Exception.
      */
-    private void updateFileLogsAux(Path folder, String prePath) throws IOException {
+    public void updateFileLogsAux(Path folder, String prePath) throws IOException {
 
         for(Path file: Files.list(folder).toList()) {
 
@@ -106,7 +106,7 @@ public class LogsManager {
      * @param fileName Name of the file we want to use.
      * @throws IOException IO Exception.
      */
-    private long getCRC32Checksum(String fileName) throws IOException {
+    public long getCRC32Checksum(String fileName) throws IOException {
         Checksum crc32 = new CRC32();
         try (InputStream inputStream = new FileInputStream(fileName)) {
             byte[] bytes = new byte[1024];

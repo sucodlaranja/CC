@@ -7,7 +7,7 @@ import java.nio.file.attribute.FileTime;
 /**
  * This class is just a register of a completed transfer.\n
  * It is not a record because the instance of this class can be updated.\n
- * The instance lastUpdated will eventually be converted to a \bFileTime, so it can be stored.
+ * The instance \ref lastUpdated will eventually be converted to a \b FileTime, so it can be stored.
  */
 public class FileTransferHistory implements Serializable {
 
