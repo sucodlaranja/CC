@@ -20,7 +20,7 @@ public class Interpreter implements Runnable{
 
     public Interpreter(String filepath, String[] ips) {
         this.firstCommandFilePath = filepath;
-        this.firstCommandIPs = ips.clone();
+        this.firstCommandIPs = ips != null? ips.clone() : null;
         this.syncs = new Syncs();
     }
 
