@@ -72,8 +72,7 @@ public class ThreadPool{
         try {
             while (nMaxThreads != maxThreadsAllowed)
                 condition.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        } catch (InterruptedException ignored) {
         } finally {
             lock.unlock();
         }
@@ -102,8 +101,7 @@ public class ThreadPool{
             else if (incOrDec == -1 && nMaxThreads == 0) {
                 condition.await();
             }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        } catch (InterruptedException ignored) {
         } finally {
             lock.unlock();
         }

@@ -52,17 +52,14 @@ public class SenderSNW {
         }
         catch (SocketException e){
             System.out.println("Failed to create socket.");
-            e.printStackTrace();
         }
         catch (OutOfMemoryError e){
             System.out.println("File is to big to be transferred.");
-            e.printStackTrace();
         }
         catch (NoSuchFileException e){
             System.out.println("File " + filepath + " was not found.");
         }
-        catch (IOException e){
-            e.printStackTrace();
+        catch (IOException ignored){
         }
         finally {
             this.dataToSend = localData;
@@ -107,7 +104,6 @@ public class SenderSNW {
         // Start timer
         long start = System.currentTimeMillis();
 
-        int counter = 0;
         // Send data to the other peer.
         int seqNum = 0; // sequence number can only be 0/1.
         for (byte[] packData : allPackets) {
@@ -131,10 +127,6 @@ public class SenderSNW {
         // Printing stats
         long elapsedTime = end - start;
         double bitsPSeg = ((this.dataToSend.length * 0.001)  / (elapsedTime * 0.001)); // bytes por segundo
-
-        // TODO: REMOVE ?
-        System.out.println(this.FILEPATH + " was sent in " + elapsedTime + " mili seconds.");
-        System.out.println("Average speed of " + bitsPSeg + " KB/s");
 
         return new TransferLogs(this.FILEPATH,true,elapsedTime,bitsPSeg);
     }

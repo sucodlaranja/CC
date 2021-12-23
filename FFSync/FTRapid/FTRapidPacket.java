@@ -27,9 +27,9 @@ public class FTRapidPacket {
     public static final int DATA = 4;       ///< Carries data and a sequence number.
 
     // Packet info.
-    public static final int PACKET_SIZE = 512;                                      ///< Overall packet size. TODO: TEST
+    public static final int PACKET_SIZE = 8192;                                      ///< Overall packet size.
     public static final int DATA_CONTENT_SIZE = PACKET_SIZE - getDataHeaderSize();  ///< Data size.
-    public static final int BUFFER_SIZE = 1024;                                     ///< Buffer size used comonly.
+    public static final int BUFFER_SIZE = PACKET_SIZE * 2;                          ///< Buffer size used comonly.
 
     public static final int CONTROL_SEQ_NUM = 2; ///< Sequence number used to acknowledge a control packet.
 
@@ -49,7 +49,7 @@ public class FTRapidPacket {
     private final int filesize;             ///< Size of the transfered file, if OPCODE=META.
     private final int sequenceNumber;       ///< Sequence number if OPCODE=DATA or ACK.
     private final String filename;          ///< Name of the file, if relevant.
-    private byte[] dataBytes;               ///< Data of DATA packet. todo: make final
+    private byte[] dataBytes;               ///< Data of DATA packet.
 
     /// Basic constructor.
     public FTRapidPacket(FTRapidPacket ftRapidPacket){
@@ -240,7 +240,7 @@ public class FTRapidPacket {
      * @return Returns the received packet in FTRapid format.
      */
     public static FTRapidPacket sendAndWaitLoop(DatagramSocket socket, DatagramPacket packet, int OPCODE, int MODE, int seqNum, boolean diff){
-        int timeOutCounter = 3; // TODO: TEST
+        int timeOutCounter = 3;
 
         FTRapidPacket ftRapidPacket = null;
         boolean notOver = true;
@@ -253,7 +253,7 @@ public class FTRapidPacket {
                 ftRapidPacket = new FTRapidPacket(received, MODE);
 
                 if(MODE == FILE && OPCODE == DATA){
-                    corruptedBugFix(ftRapidPacket, received.getData());  // TODO: Test
+                    corruptedBugFix(ftRapidPacket, received.getData());
                 }
 
                 if (!diff

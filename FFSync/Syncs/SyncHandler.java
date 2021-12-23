@@ -176,7 +176,6 @@ public class SyncHandler implements Runnable{
                     }
                     catch (IOException e) {
                         System.out.println("Failed to send INIT packet.");
-                        e.printStackTrace();
                     }
                 }
                 // ourRandom < peerRandom: send INIT_ACK, calculate logs, send logs, wait for guide.
@@ -210,8 +209,7 @@ public class SyncHandler implements Runnable{
                 try {
                     this.ourLogs.updateFileLogs();
                     this.syncHistory.updateLogs(this.ourLogs.getLogs());
-                } catch (IOException e) {
-                    e.printStackTrace();
+                } catch (IOException ignored) {
                 }
             }
 
@@ -219,8 +217,7 @@ public class SyncHandler implements Runnable{
             this.syncHistory.updateGuide(transfers);
             try {
                 this.syncHistory.saveTransferHistory(HTTPServer.HTTP_FILEPATH + "/" + this.syncInfo.getFilename() + "-" + this.syncInfo.getId());
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (IOException ignored) {
             }
 
             this.syncInfo.deactivate();
@@ -236,7 +233,6 @@ public class SyncHandler implements Runnable{
         }
         catch (IOException e) {
             System.out.println("Failed to create logs from: " + this.syncInfo.getFilepath());
-            e.printStackTrace();
         }
     }
 
@@ -250,7 +246,7 @@ public class SyncHandler implements Runnable{
             // Sync folders with the other peer until the socket closes.
             while(!this.syncSocket.isClosed()){
                 this.syncOnce();
-                TimeUnit.SECONDS.sleep(10); // TODO: deixamos estar isto?
+                TimeUnit.SECONDS.sleep(5); // Sleep for 5 seconds.
             }
 
             // Termination message.
@@ -259,8 +255,7 @@ public class SyncHandler implements Runnable{
         catch (SocketException e) {
             System.out.println("Failed to create socket in sync " + this.syncInfo.getId() + ".");
         }
-        catch (InterruptedException e) {
-            e.printStackTrace();
+        catch (InterruptedException ignored) {
         }
     }
 

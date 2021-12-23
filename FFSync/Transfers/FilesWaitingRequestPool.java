@@ -62,8 +62,7 @@ public class FilesWaitingRequestPool{
         lock.lock();
         try {
             if (upcomingFiles.isEmpty()) condition.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        } catch (InterruptedException ignored) {
         } finally {
             lock.unlock();
         }

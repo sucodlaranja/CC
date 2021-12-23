@@ -94,7 +94,6 @@ public class Listener implements Runnable{
         }
         catch (Exception e){
             System.out.println("Checking pending requests failed.");
-            e.printStackTrace();
         }
         finally {
             lock.unlock();
@@ -124,7 +123,6 @@ public class Listener implements Runnable{
             }
             catch (IOException e) {
                 System.out.println("Failed to receive datagram packet in Listener.");
-                e.printStackTrace();
             }
 
             // Put packet into set.
@@ -135,7 +133,6 @@ public class Listener implements Runnable{
                 }
                 catch (Exception e){
                     System.out.println("Adding packets to received packet set failed.");
-                    e.printStackTrace();
                 }
                 finally {
                     lock.unlock();
@@ -156,7 +153,6 @@ public class Listener implements Runnable{
         }
         catch (Exception e){
             System.out.println("Failed to close listener socket.");
-            e.printStackTrace();
         }
         finally {
             lock.unlock();

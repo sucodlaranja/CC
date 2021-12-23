@@ -48,7 +48,6 @@ public class Syncs {
                 returnVal = false;
         }
         catch (Exception e){
-            e.printStackTrace();
             returnVal = false;
         }
         finally {
@@ -83,7 +82,6 @@ public class Syncs {
         }
         catch (Exception e){
             System.out.println("Failed sync termination: " + id);
-            e.printStackTrace();
         }
         finally {
             this.lock.unlock();

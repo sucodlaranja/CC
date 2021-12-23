@@ -50,8 +50,7 @@ public class HTTPServer implements Runnable {
             try {
                 Files.list(Paths.get(HTTP_FILEPATH)).map(Path::toFile).forEach(File::delete);
                 Files.delete(Paths.get(HTTP_FILEPATH));
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (IOException ignored) {
             }
         }
 
@@ -99,18 +98,15 @@ public class HTTPServer implements Runnable {
 
                 in.close();
             } catch (SocketException e) {
-                System.err.println("HTTP SERVER CLOSED");
                 closed = false;
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (IOException ignored) {
             }
         }
 
         try {
             Files.list(Paths.get(HTTP_FILEPATH)).map(Path::toFile).forEach(File::delete);
             Files.delete(Paths.get(HTTP_FILEPATH));
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException ignored) {
         }
 
         // Termination message.
@@ -204,8 +200,7 @@ public class HTTPServer implements Runnable {
     public void closeServer() {
         try {
             this.serverSocket.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException ignored) {
         }
     }
 }

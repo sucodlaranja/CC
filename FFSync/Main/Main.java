@@ -14,7 +14,7 @@ public class Main {
      * Listener, HTTP server and the interpreter are all started here.
      * A Sync can be started using command line arguments.
      * @param args Arguments used to start a Sync: "FFSync /home/rubensas/tp2-folder3 192.168.1.108".
-     *             TODO: We can give the program more than one address.
+     *             We can give the program more than one address.
      */
     public static void main(String[] args) {
         // Parsing user input: "FFSync filepath ip1 ip2 ipn"
@@ -45,8 +45,7 @@ public class Main {
         try{
             httpServer = new HTTPServer(Listener.LISTENER_PORT);
         }
-        catch (IOException e){
-            e.printStackTrace();
+        catch (IOException ignored){
         }
 
         // Start HTTP server.
@@ -65,7 +64,6 @@ public class Main {
         }
         catch (InterruptedException e){
             System.out.println("Failed to join interpreter thread.");
-            e.printStackTrace();
         }
 
         // Close Listener UDP and HTTP server.

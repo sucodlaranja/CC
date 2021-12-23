@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketTimeoutException;
 import java.util.*;
 
 /// This class will create all the threads that send and receive files.
@@ -85,12 +84,8 @@ public class TransferHandler {
             try {
                 syncSocket.setSoTimeout(5000);
                 syncSocket.receive(FTRapidPacket.decode(received));
-            }
-            catch (SocketTimeoutException ignored){
+            } catch (IOException ignored){
 
-            }
-            catch (IOException e) {
-                e.printStackTrace();
             }
 
             return new FTRapidPacket(received, FTRapidPacket.INVALID);
@@ -267,8 +262,7 @@ public class TransferHandler {
         try {
             listener.join();
         }
-        catch (InterruptedException e) {
-            e.printStackTrace();
+        catch (InterruptedException ignored) {
         }
 
         this.checkProcessTransfers = true;

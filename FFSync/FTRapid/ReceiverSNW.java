@@ -40,7 +40,6 @@ public class ReceiverSNW {
         }
         catch (SocketException e){
             System.out.println("Failed to create socket.");
-            e.printStackTrace();
         }
         finally {
             this.socket = localSocket;
@@ -117,7 +116,6 @@ public class ReceiverSNW {
                 return null;
             else{
                 allPackets.add(index, data.getDataBytes().clone());
-                System.out.println("Received packet " + index + "/" + (N_PACKETS-1)); // TODO: REMOVE
             }
 
             // Change previous sequence number.
@@ -132,8 +130,7 @@ public class ReceiverSNW {
         try {
             this.socket.send(FTRapidPacket.encode(ACK));
         }
-        catch (IOException e){
-            e.printStackTrace();
+        catch (IOException ignored){
         }
 
 
@@ -159,13 +156,10 @@ public class ReceiverSNW {
             catch (FileNotFoundException e){
                 System.out.println("Receiver: " + this.filepath + " is not a valid filepath.");
             }
-            catch (IOException e){
-                e.printStackTrace();
+            catch (IOException ignored){
             }
         }
 
-
-        System.out.println(this.filepath + " was received."); // TODO: REMOVE
 
         long elapsedTime = end - start;
         double bitsPSeg = ((fileBytes.length * 0.001)  / (elapsedTime * 0.001)); // bytes por segundo
