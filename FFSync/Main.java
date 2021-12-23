@@ -15,12 +15,13 @@ public class Main {
      *             TODO: We can give the program more than one address.
      */
     public static void main(String[] args) {
-        // Parsing user input: "FFSync filepath ip"
+        // Parsing user input: "FFSync filepath ip1 ip2 ipn"
         String filepath = "";
-        String ip = "";
+        String[] ips = null;
         if(args.length > 2){
             filepath = args[1];
-            ip = args[2];
+            ips = new String[args.length - 2]; // take the FFSync and filename.
+            System.arraycopy(args, 2, ips, 0, ips.length);
         }
 
         // Create Listener.Listener thread.
@@ -52,7 +53,7 @@ public class Main {
         httpThread.start();
 
         // Create and run UI.Interpreter thread.
-        Thread interpreter = new Thread(new Interpreter(filepath, ip));
+        Thread interpreter = new Thread(new Interpreter(filepath, ips));
         interpreter.start();
 
         // Wait for UI.Interpreter to terminate.

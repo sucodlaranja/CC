@@ -15,12 +15,12 @@ import Syncs.Syncs;
 public class Interpreter implements Runnable{
 
     private final String firstCommandFilePath;
-    private final String firstCommandIPAddress;
+    private final String[] firstCommandIPs;
     private final Syncs syncs;
 
-    public Interpreter(String filepath, String ip) {
+    public Interpreter(String filepath, String[] ips) {
         this.firstCommandFilePath = filepath;
-        this.firstCommandIPAddress = ip;
+        this.firstCommandIPs = ips.clone();
         this.syncs = new Syncs();
     }
 
@@ -60,9 +60,11 @@ public class Interpreter implements Runnable{
 
         // Is there a synchronization to be started?
         if(!Objects.equals(this.firstCommandFilePath, "")
-                && !Objects.equals(this.firstCommandIPAddress, ""))
+                && this.firstCommandIPs != null)
         {
-            this.syncStarter(this.firstCommandFilePath, this.firstCommandIPAddress);
+            // Start sync (this.firstCommandIPs can have multiple ip adresses meaning we're going to star multiple syncs).
+            for(String ip : this.firstCommandIPs)
+                this.syncStarter(this.firstCommandFilePath, ip);
         }
 
         // Start interpreter.
