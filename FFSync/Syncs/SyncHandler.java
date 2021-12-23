@@ -28,22 +28,14 @@ import Transfers.TransferHandler;
  * */
 public class SyncHandler implements Runnable{
 
-    // Information about this sync (id, active, ...)
-    private final SyncInfo syncInfo;
-    // SyncHandler socket.
-    private DatagramSocket syncSocket;
-    // Our randomly generated integer.
-    private final Integer ourRandom;
-    // Random number packet.
-    private final DatagramPacket randomNumberPacket;
-    /// ourRandom > peerRandom?
-    private boolean isBiggerNumber;
-    /// Socket Port of syncHandler's peer. 
-    private int handlerPort;        
-
-    private final TransferHistory syncHistory;
-
-    private LogsManager ourLogs;
+    private final SyncInfo syncInfo; ///< Information about this sync (id, active, ...)
+    private DatagramSocket syncSocket; ///< SyncHandler socket.
+    private final Integer ourRandom;    ///< Our randomly generated integer.
+    private final DatagramPacket randomNumberPacket; ///< Random number packet.
+    private boolean isBiggerNumber;    ///< ourRandom > peerRandom?
+    private int handlerPort;     ///< Socket Port of syncHandler's peer.
+    private final TransferHistory syncHistory; ///< Transfer history and stats about trasnfer.
+    private LogsManager ourLogs; ///< Most recent logs.
 
     /**
      * SyncHandler is the program heart. Everything starts and ends here.

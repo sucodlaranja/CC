@@ -6,16 +6,12 @@ import java.net.InetAddress;
   * Stores sync information such as the filename of the sync folder, the sync ID and its status.
   */
 public class SyncInfo {
-    /// "/home/rubensas/sync_folder" : without the final "/".
-    private final String filepath;
-    /// Name of the sync folder: "sync_folder", from the above example.          
-    private final String filename;    
-    /// IP Address of the other peer.
-    private final InetAddress ipAddress;
-    /// Sync ID: used to identify this sync.    
-    private final int id;
-    /// True if the sync is transfering files to another peer.                   
-    private boolean active; 
+
+    private final String filepath; ///< "/home/rubensas/sync_folder" : without the final "/".
+    private final String filename; ///< Name of the sync folder: "sync_folder", from the above example.
+    private final InetAddress ipAddress; ///< IP Address of the other peer.
+    private final int id; ///< Sync ID: used to identify this sync.
+    private boolean active; ///< True if the sync is transfering files to another peer.
     
      /// Main constructor.
     /**

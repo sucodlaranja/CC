@@ -33,6 +33,7 @@ public class Listener implements Runnable{
     private final DatagramSocket datagramSocket;                    ///<  Listener socket.
     private static final ReentrantLock lock = new ReentrantLock();  ///<  Locks is used to control access to Set.
 
+    /// Listener basic constructor.
     public Listener() throws SocketException {
         rcvFTRapidPackets = new HashSet<>();
         this.datagramSocket = new DatagramSocket(LISTENER_PORT);

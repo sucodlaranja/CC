@@ -24,11 +24,11 @@ public class ReceiverSNW {
 
     
     private final DatagramSocket socket; ///< Data will be sent from this socket to the address and port bellow.
-    private final InetAddress ADDRESS; /// < Peer address.
-    private int PORT; ///< Starts as a syncHandler/transferHandler port and then represents port of the thread created to handle the transfer.
-    private final int MODE; ///< Mode can be FILE, LOGS or GUIDE.
-    private final String filepath; /// < Filepath is the complete filepath to the file.
-    private final String filename; /// < Filename is the name of the file being received.
+    private final InetAddress ADDRESS;  ///< Peer address.
+    private int PORT;                   ///< Starts as a syncHandler/transferHandler port and then represents port of the thread created to handle the transfer.
+    private final int MODE;             ///< Mode can be FILE, LOGS or GUIDE.
+    private final String filepath;      /// < Filepath is the complete filepath to the file.
+    private final String filename;      /// < Filename is the name of the file being received.
 
     /// Constructor for requesting and receiving files.
     public ReceiverSNW(InetAddress address, int handlerPort, String filepath, String filename){

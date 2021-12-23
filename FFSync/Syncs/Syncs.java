@@ -12,10 +12,8 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class Syncs {
 
-    /// Lock used to access the syncs map.
-    private final ReentrantLock lock;
-    // Holds all the existent syncs.
-    private final Map<Integer, SyncHandler> syncs;
+    private final ReentrantLock lock; ///< Lock used to access the syncs map.
+    private final Map<Integer, SyncHandler> syncs; ///< Holds all the existent syncs.
 
     public Syncs(){
         this.lock = new ReentrantLock();

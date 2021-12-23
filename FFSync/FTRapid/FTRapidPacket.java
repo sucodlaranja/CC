@@ -19,37 +19,37 @@ import java.nio.charset.StandardCharsets;
 public class FTRapidPacket {
 
     // Available FTRapid Packets OPCODE's.
-    public static final int INVALID = -1;   /// Invalid packet (not resolved by constructor).
-    public static final int ACK = 0;        /// Acknowledgment packet (carries respective sequence number).
-    public static final int INIT = 1;       /// Carries a random number and a filename, used to start sync.
-    public static final int INIT_ACK = 2;   /// Carries a filename.
-    public static final int META = 3;       /// Used to prepare for a file transfer. Carries file stats.
-    public static final int DATA = 4;       /// Carries data and a sequence number.
+    public static final int INVALID = -1;   ///< Invalid packet (not resolved by constructor).
+    public static final int ACK = 0;        ///< Acknowledgment packet (carries respective sequence number).
+    public static final int INIT = 1;       ///< Carries a random number and a filename, used to start sync.
+    public static final int INIT_ACK = 2;   ///< Carries a filename.
+    public static final int META = 3;       ///< Used to prepare for a file transfer. Carries file stats.
+    public static final int DATA = 4;       ///< Carries data and a sequence number.
 
     // Packet info.
-    public static final int PACKET_SIZE = 512;                                      /// Overall packet size. TODO: TEST
-    public static final int DATA_CONTENT_SIZE = PACKET_SIZE - getDataHeaderSize();  /// Data size.
-    public static final int BUFFER_SIZE = 1024;                                     /// Buffer size used comonly.
+    public static final int PACKET_SIZE = 512;                                      ///< Overall packet size. TODO: TEST
+    public static final int DATA_CONTENT_SIZE = PACKET_SIZE - getDataHeaderSize();  ///< Data size.
+    public static final int BUFFER_SIZE = 1024;                                     ///< Buffer size used comonly.
 
-    public static final int CONTROL_SEQ_NUM = 2; /// Sequence number used to acknowledge a control packet.
+    public static final int CONTROL_SEQ_NUM = 2; ///< Sequence number used to acknowledge a control packet.
 
-    public final static int FILE = 0;   /// FILE MODE of operation. Transfering files.
-    public final static int LOGS = 1;   /// LOGS MODE of operation. Transfering LOGS.
-    public final static int GUIDE = 2;  /// GUIDE MODE of operation. Transfering GUIDE.
+    public final static int FILE = 0;   ///< FILE MODE of operation. Transfering files.
+    public final static int LOGS = 1;   ///< LOGS MODE of operation. Transfering LOGS.
+    public final static int GUIDE = 2;  ///< GUIDE MODE of operation. Transfering GUIDE.
 
     /// Used to encoded and decoded packets. (Currently not being used due to BadPaddingException).
     public static byte[] DEFAULT_MUTUAL_SECRET = "x!A%D*G-KaPdSgVk".getBytes();
 
-    private final InetAddress peerAddress;  /// Address of the FTRapid packet.
-    private final Integer key;              /// Id of the FTRapid packet.
-    private final int OPCODE;               /// Identifies packet type (DATA, INIT...).
-    private final int randomNumber;         /// Random number, in case OPCODE=INIT.
-    private final int port;                 /// Port of the FTRapid packet.
-    private final int transferMODE;         /// Transfer mode (FILE, LOG, GUIDE), if relevant.
-    private final int filesize;             /// Size of the transfered file, if OPCODE=META.
-    private final int sequenceNumber;       /// Sequence number if OPCODE=DATA or ACK.
-    private final String filename;          /// Name of the file, if relevant.
-    private byte[] dataBytes;               /// Data of DATA packet. todo: make final
+    private final InetAddress peerAddress;  ///< Address of the FTRapid packet.
+    private final Integer key;              ///< Id of the FTRapid packet.
+    private final int OPCODE;               ///< Identifies packet type (DATA, INIT...).
+    private final int randomNumber;         ///< Random number, in case OPCODE=INIT.
+    private final int port;                 ///< Port of the FTRapid packet.
+    private final int transferMODE;         ///< Transfer mode (FILE, LOG, GUIDE), if relevant.
+    private final int filesize;             ///< Size of the transfered file, if OPCODE=META.
+    private final int sequenceNumber;       ///< Sequence number if OPCODE=DATA or ACK.
+    private final String filename;          ///< Name of the file, if relevant.
+    private byte[] dataBytes;               ///< Data of DATA packet. todo: make final
 
     /// Basic constructor.
     public FTRapidPacket(FTRapidPacket ftRapidPacket){
