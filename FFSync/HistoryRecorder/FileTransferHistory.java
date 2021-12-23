@@ -34,17 +34,12 @@ public class FileTransferHistory implements Serializable {
         this.bitsPSeg = bitsPSeg;
     }
 
-
     ///Constructor that will clone a \ref FileTransferHistory.
     public FileTransferHistory(FileTransferHistory fileTransferHistory){
         this.lastUpdated = fileTransferHistory.lastUpdated;
         this.timeOfTransfer = fileTransferHistory.timeOfTransfer;
         this.bitsPSeg = fileTransferHistory.bitsPSeg;
     }
-
-
-    ///Generic clone method.
-    public FileTransferHistory clone(){ return new FileTransferHistory(this); }
 
     ///Basic get method.
     public long getLastUpdated(){ return lastUpdated; }
@@ -68,12 +63,12 @@ public class FileTransferHistory implements Serializable {
      */
     public String toHTML(String filename){
         StringBuilder html = new StringBuilder();
-        html.append("<h3>" + filename + "</h3>");
+        html.append("<h3>").append(filename).append("</h3>");
         if (this.lastUpdated != -1) {
-            html.append("<p>&nbsp&nbsp&nbsp<i>Last Updated: </i>" + FileTime.fromMillis(this.lastUpdated) + "</p>");
+            html.append("<p>&nbsp&nbsp&nbsp<i>Last Updated: </i>").append(FileTime.fromMillis(this.lastUpdated)).append("</p>");
             if (this.timeOfTransfer != -1) {
-                html.append("<p>&nbsp&nbsp&nbsp<i>Time of Transfer: </i>" + this.timeOfTransfer + "ms</p>");
-                html.append("<p>&nbsp&nbsp&nbsp<i>Bits Per Second: </i>" + this.bitsPSeg + "Kbps</p>");
+                html.append("<p>&nbsp&nbsp&nbsp<i>Time of Transfer: </i>").append(this.timeOfTransfer).append("ms</p>");
+                html.append("<p>&nbsp&nbsp&nbsp<i>Bits Per Second: </i>").append(this.bitsPSeg).append("Kbps</p>");
             }
             else html.append("<p>&nbsp&nbsp&nbsp<i>No Transfer yet </i> </p>");
         }

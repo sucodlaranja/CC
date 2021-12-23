@@ -93,15 +93,4 @@ public class FilesWaitingRequestPool{
         }
     }
 
-    /// Returns the number files that are on the set
-    public int size(){
-        lock.lock();
-        try {
-            return upcomingFiles.size();
-        }
-        finally {
-            lock.unlock();
-        }
-    }
-
 }

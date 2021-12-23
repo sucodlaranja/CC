@@ -13,9 +13,11 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import FTRapid.FTRapidPacket;
 
- /// (descricao breve se quiseres)
+ /// Major listener of FFSync app.
  /**
-  * (descricao)
+  * Listens to all the requests sended to port=LISTENER_PORT.
+  * Used mainly to start conncetions.
+  * Methos checkPendingRequests() is where the utility of the class is visible.
   */
 public class Listener implements Runnable{
 
@@ -37,14 +39,14 @@ public class Listener implements Runnable{
     }
 
     /**
-     *  * Checks requests from other peers.
+     * Checks requests from other peers.
      * Sends feedback to the respective SyncHandler (locking Set required).
      * Possible feedback is explained above.
      * Packets found in rcvFTRapidPackets: INIT, INIT_ACK.
-     * @param filename
-     * @param peerAddress
-     * @param ourRandom
-     * @return
+     * @param filename Name of the sync folder.
+     * @param peerAddress Address of peer.
+     * @param ourRandom Our generated random number.
+     * @return Returns a list l where l.get(0) is the feedback (REQUEST_NOT_FOUND...) and l.get(1) is the sync handler peer port.
      */
     public static List<Integer> checkPendingRequests(String filename, InetAddress peerAddress, Integer ourRandom){
         // Contains: feedback at i=0 and, if we receive INIT_ACK, peer handler port at i=1.
@@ -100,6 +102,7 @@ public class Listener implements Runnable{
         return return_value;
     }
 
+    /// Receives UDP packets and stores them in rcvFTRapidPackets Set.
     @Override
     public void run() {
         // Receive requests and save them (not keeping repeated requests).

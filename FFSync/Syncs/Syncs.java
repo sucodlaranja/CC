@@ -4,15 +4,17 @@ import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
- /// (descricao breve se quiseres (recomendo))
+
+/// Class that creates all the Syncs and holds all their information.
 /**
- * goal: save all clients sync information.
- * (accessed by Listener.Listener and Handler)
- *
- * */
+ * This class creates new syncs and terminate old ones.
+ * A reentrant lock is used to prevent concurrent access.
+ */
 public class Syncs {
 
+    /// Lock used to access the syncs map.
     private final ReentrantLock lock;
+    // Holds all the existent syncs.
     private final Map<Integer, SyncHandler> syncs;
 
     public Syncs(){
@@ -21,8 +23,12 @@ public class Syncs {
     }
 
     /**
-     * Create Syncs.SyncHandler
-     * */
+     * Creates a SyncHandler instance and runs it in its own thread.
+     * This is the start of a sync.
+     * @param filepath Filepath for the main sync folder.
+     * @param ipAddress Other peer IPAdress.
+     * @return true if the sync was created successfully.
+     */
     public boolean createSync(String filepath, InetAddress ipAddress) {
         // Create Sync instance.
         SyncHandler value = new SyncHandler(filepath, ipAddress);
@@ -54,8 +60,10 @@ public class Syncs {
     }
 
     /**
-     * Terminate one specific or all syncs.
-     * */
+     * Terminate one or all syncs, depending on the id given.
+     * @param id If id.equals("all"), then the terminate method will terminate all syncs.
+     *           Otherwise, it will terminate the sync with the given id, if exists.
+     */
     public void terminate(String id) {
         this.lock.lock();
         try {
@@ -84,7 +92,7 @@ public class Syncs {
         }
     }
 
-    @Override
+    /// Simple toString() method: puts the SyncInfo of all the Syncs in one String.
     public String toString(){
         StringBuilder stringBuilder = new StringBuilder();
         for(SyncHandler sync : this.syncs.values()){

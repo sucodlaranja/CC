@@ -21,16 +21,20 @@ import Logs.LogsManager;
 import Logs.TransferLogs;
 import Transfers.TransferHandler;
 
- /// (descricao breve se quiseres)
+ /// Gestor de syncs (pré-guide)
 /**
- * Handle each sync with another peer.
+ * SyncHandler is the program heart. Everything starts and ends here.
+ * A sync is managed from the early INIT/INIT_ACK stage until it starts the data exchange.
  * */
 public class SyncHandler implements Runnable{
 
+    // Information about this sync (id, active, ...)
     private final SyncInfo syncInfo;
+    // SyncHandler socket.
     private DatagramSocket syncSocket;
-
+    // Our randomly generated integer.
     private final Integer ourRandom;
+    // Random number packet.
     private final DatagramPacket randomNumberPacket;
     /// ourRandom > peerRandom?
     private boolean isBiggerNumber;
@@ -40,10 +44,13 @@ public class SyncHandler implements Runnable{
     private final TransferHistory syncHistory;
 
     private LogsManager ourLogs;
+
     /**
-     * (descricao)
-     * @param filepath
-     * @param address
+     * SyncHandler is the program heart. Everything starts and ends here.
+     * A sync is managed from the early INIT/INIT_ACK stage until it starts the data exchange.
+     *
+     * @param filepath Filepath of the sync (full path).
+     * @param address Peer address.
      */
     public SyncHandler(String filepath, InetAddress address){
         // SyncInfo stores important information about this sync.
@@ -58,36 +65,24 @@ public class SyncHandler implements Runnable{
         this.ourLogs = null;
     }
 
-    /// (descricao breve se quiseres) ourRandom < peerRandom
+    /// Our random number is the smaller.
     /**
-     * (descricao)
-     * @return returns true if sync has to be aborted, false if sync can proceed.
+     * Firstly, we calculate Logs.
+     * loop:
+     *      Sends INIT_ACK to peer listener
+     *      Waits for ack in handler
+     *
+     * Send logs to peer handler port
+     * Wait and receive guide
+     *
+     * @return Guide received from the other peer. If this object is null, then abort the sync.
      */
     private Guide inferiorRandomHandler() {
-        /*
-        calculate logs
-        loop:
-            sends INIT_ACK to peer listener
-            waits for ack in handler
-        send logs to peer handler port
-        wait and receive guide
-        */
-
         // We're inferior.
         this.isBiggerNumber = false;
 
         // Calculate logs
-        try {
-            this.ourLogs = new LogsManager(this.syncInfo.getFilepath());
-            this.syncHistory.updateLogs(this.ourLogs.getLogs());
-            this.syncHistory.saveTransferHistory(HTTPServer.HTTP_FILEPATH + "/" + this.syncInfo.getFilename() + "-" + this.syncInfo.getId());
-        }
-        catch (IOException e){
-            System.out.println("Failed to create logs from: " + this.syncInfo.getFilepath());
-            e.printStackTrace();
-        }
-
-
+        updateAndSaveLogs();
 
         // Abort sync if the LOGS can't be created.
         if(this.ourLogs == null)
@@ -120,19 +115,21 @@ public class SyncHandler implements Runnable{
         return guideBytes == null? null : new Guide(guideBytes); // ABORT SYNC = FALSE.
     }
 
-    /// (descricao breve se quiseres) ourRandom > peerRandom
+    // Our random number is the bigger one.
+    /**
+     * If we're here it means we've found an INIT_ACK packet in the Listener request buffer.
+     * We are the superior randm, so we go as follow:
+     *  loop:
+     *      Sends ack directly to peer handler (get port from INIT_ACK).
+     *      Checks if peer is sending logs.
+     *
+     *  Receive Logs
+     *  Calculate Guide
+     *  Send Guide
+     *
+     * @return Guide created with the logs received from the other peer. If this object is null, then abort the sync.
+     */
     private Guide superiorRandomHandler() {
-        // found INIT_ACK
-        /*
-        * loop:
-        *   sends ack directly to peer handler (get port from INIT_ACK)
-        *   checks if peer is sending logs
-        *
-        * receive logs
-        * calculate guide
-        * send guide
-        * */
-
         // We're superior.
         this.isBiggerNumber = true;
 
@@ -140,28 +137,14 @@ public class SyncHandler implements Runnable{
         ReceiverSNW receiverSNW = new ReceiverSNW(this.syncSocket, FTRapidPacket.LOGS, this.getInfo().getIpAddress(), this.handlerPort);
         List<Object> list = receiverSNW.requestAndReceive();
         byte[] logsBytes = null;
-        if (list != null) {
+        if (list != null)
             logsBytes = (byte[]) list.get(0);
-        }
 
         // Create LogsManager instance.
         LogsManager beta = new LogsManager(logsBytes);
 
-        // Get our logs.
-        // Calculate logs
-        // Calculate logs
-
-        try {
-            this.ourLogs = new LogsManager(this.syncInfo.getFilepath());
-            this.syncHistory.updateLogs(this.ourLogs.getLogs());
-            this.syncHistory.saveTransferHistory(HTTPServer.HTTP_FILEPATH + "/" + this.syncInfo.getFilename() + "-" + this.syncInfo.getId());
-        }
-        catch (IOException e) {
-            System.out.println("Failed to create logs from: " + this.syncInfo.getFilepath());
-            e.printStackTrace();
-        }
-
-
+        // Update logs (and save them).
+        updateAndSaveLogs();
 
         // Calculate Guide.
         Guide guide = new Guide(this.ourLogs.getLogs(), beta.getLogs());
@@ -173,10 +156,13 @@ public class SyncHandler implements Runnable{
         return guide; // ABORT SYNC = null.
     }
 
+    /**
+     * This method executes a sync - syncs two folders in two different end-systems.
+     * Send INIT packet to peer listener.
+     * Checks pending requests from listener and chooses, which route to take.
+     * After getting guide, proceeds to exchange files.
+     */
     private void syncOnce() {
-        System.out.println("one_sync_started"); // TODO: REMOVE
-
-
         // Initiate sync
         boolean nextStep = false;
         Guide guide = null;
@@ -215,23 +201,14 @@ public class SyncHandler implements Runnable{
             // If guide can be created, go to next phase.
             if (guide != null)
                 nextStep = true;
-            else
-                this.syncInfo.deactivate();
-
-            // TODO: Abort sync in case of no response for a given ammount of time.
-
         }
 
         // Check if socket is closed: something might have failed.
         if (!this.syncSocket.isClosed() && (guide != null) && (guide.getGuide().size() > 0)) {
             this.syncInfo.activate();
 
-            for(TransferLogs tl : guide.getGuide())
-                System.out.println("Filename: " + tl.fileName() + " b=" + tl.sender());
-
             TransferHandler transferHandler = new TransferHandler(5, guide, this.syncInfo.getFilepath(), this.syncSocket, this.syncInfo.getIpAddress(), this.handlerPort, this.isBiggerNumber);
             Set<TransferLogs> transfers = transferHandler.processTransfers();
-
 
             // Calculate logs and updating file.
             if(this.ourLogs != null) {
@@ -243,20 +220,34 @@ public class SyncHandler implements Runnable{
                 }
             }
 
-            // History
+            // Updating guide HTTP file.
             this.syncHistory.updateGuide(transfers);
             try {
                 this.syncHistory.saveTransferHistory(HTTPServer.HTTP_FILEPATH + "/" + this.syncInfo.getFilename() + "-" + this.syncInfo.getId());
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
+            this.syncInfo.deactivate();
         }
-        System.out.println("one_sync_finished"); // TODO: REMOVE
     }
 
+    /// Updates logs and saves them into HTTP file.
+    private void updateAndSaveLogs() {
+        try {
+            this.ourLogs = new LogsManager(this.syncInfo.getFilepath());
+            this.syncHistory.updateLogs(this.ourLogs.getLogs());
+            this.syncHistory.saveTransferHistory(HTTPServer.HTTP_FILEPATH + "/" + this.syncInfo.getFilename() + "-" + this.syncInfo.getId());
+        }
+        catch (IOException e) {
+            System.out.println("Failed to create logs from: " + this.syncInfo.getFilepath());
+            e.printStackTrace();
+        }
+    }
+
+    /// Runs the syncOnce() method in loop, pausing for sometime after each run.
     @Override
     public void run() {
-
         try{
             // Create Socket.
             this.syncSocket = new DatagramSocket();
@@ -264,10 +255,7 @@ public class SyncHandler implements Runnable{
             // Sync folders with the other peer until the socket closes.
             while(!this.syncSocket.isClosed()){
                 this.syncOnce();
-
-                //TODO
-                TimeUnit.SECONDS.sleep(10);
-                // TODO: checkar logs a ver se foram updated
+                TimeUnit.SECONDS.sleep(10); // TODO: deixamos estar isto?
             }
 
             // Termination message.
@@ -275,16 +263,20 @@ public class SyncHandler implements Runnable{
         }
         catch (SocketException e) {
             System.out.println("Failed to create socket in sync " + this.syncInfo.getId() + ".");
-            e.printStackTrace();
-        } catch (InterruptedException e) {
+        }
+        catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
+    /// Get sync information.
     public SyncInfo getInfo(){
         return this.syncInfo.clone();
     }
+
+    /// Closes syncHandler socket. Used before exiting.
     public void closeSocket(){
         this.syncSocket.close();
     }
+
 }

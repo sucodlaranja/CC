@@ -26,8 +26,8 @@ public class TransferHistory implements Serializable {
      * The file was previously saved whit the method \ref saveTransferHistory.
      *
      * @param filepath The filepath where the information is stored.
-     * @throws IOException
-     * @throws ClassNotFoundException
+     * @throws IOException IO Exception.
+     * @throws ClassNotFoundException Class Exception.
      */
     public TransferHistory(String filepath) throws IOException, ClassNotFoundException {
         ObjectInputStream is =
@@ -36,7 +36,7 @@ public class TransferHistory implements Serializable {
 
         this.transfers = new HashMap<>();
         for (Map.Entry<String, FileTransferHistory> file : transferHistory.transfers.entrySet()) {
-            this.transfers.put(file.getKey(), file.getValue().clone());
+            this.transfers.put(file.getKey(), new FileTransferHistory(file.getValue()));
         }
         is.close();
     }

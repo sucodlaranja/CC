@@ -42,7 +42,7 @@ public class HTTPServer implements Runnable {
      * 
      * @param port \ref port
      * 
-     * @throws IOException
+     * @throws IOException IO Exception.
      */
     public HTTPServer(int port) throws IOException {
         this.port = port;
@@ -103,7 +103,6 @@ public class HTTPServer implements Runnable {
             } catch (SocketException e) {
                 System.err.println("HTTP SERVER CLOSED");
                 closed = false;
-                e.printStackTrace(); // TODO: fica?
             } catch (IOException e) {
                 e.printStackTrace();
             }

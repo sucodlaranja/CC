@@ -6,6 +6,10 @@ import java.net.*;
 
 public class Main {
 
+    /**
+     *
+     * @param args
+     */
     public static void main(String[] args) {
         // Parsing user input: "FFSync filepath ip"
         String filepath = "";
