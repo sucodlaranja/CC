@@ -8,50 +8,50 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 
-import Listener.Listener;
-import Syncs.SyncInfo;
-/// (descricao breve se quiseres (recomendo))
+/// This class has all the methods related to an FTRapid method.
 /**
- * Constructor receives datagram packet and transforms byte stream to readable and accessible information.
+ * Constructor receives datagram packet and transforms raw information into readable one.
+ * This class is used everytime we want to send a packet, to create such packet.
+ * It is also where all the MACROS with relevant information about the protocol are.
+ * After creating the packet instance, all it's information can be accessed via getters.
  *
  * */
 public class FTRapidPacket {
 
-    public static final int INVALID = -1;
-    public static final int ACK = 0;
-    public static final int INIT = 1;
-    public static final int INIT_ACK = 2;
-    public static final int META = 3;
-    public static final int DATA = 4;
-    public static final int RQF = 5;
+    // Available FTRapid Packets OPCODE's.
+    public static final int INVALID = -1;   /// Invalid packet (not resolved by constructor).
+    public static final int ACK = 0;        /// Acknowledgment packet (carries respective sequence number).
+    public static final int INIT = 1;       /// Carries a random number and a filename, used to start sync.
+    public static final int INIT_ACK = 2;   /// Carries a filename.
+    public static final int META = 3;       /// Used to prepare for a file transfer. Carries file stats.
+    public static final int DATA = 4;       /// Carries data and a sequence number.
 
-    public static final int PACKET_SIZE = 512;
-    public static final int DATA_HEADER_SIZE = (DATA + "@" + DATA + "@").getBytes(StandardCharsets.UTF_8).length; // TODO: MACRO IN METHOD..2 char's + 2 int's.
-    public static final int DATA_CONTENT_SIZE = PACKET_SIZE - DATA_HEADER_SIZE;
-    public static final int BUFFER_SIZE = 1024;
+    // Packet info.
+    public static final int PACKET_SIZE = 512;                                      /// Overall packet size. TODO: TEST
+    public static final int DATA_CONTENT_SIZE = PACKET_SIZE - getDataHeaderSize();  /// Data size.
+    public static final int BUFFER_SIZE = 1024;                                     /// Buffer size used comonly.
 
-    ///This is the sequence number used to acknowledge a control packet.
-    /// DATA packets are acknowledged with sequence numbers 0/1.
-    public static final int CONTROL_SEQ_NUM = 2;
+    public static final int CONTROL_SEQ_NUM = 2; /// Sequence number used to acknowledge a control packet.
 
-    public final static int ERROR = -1;
-    public final static int FILE = 0;
-    public final static int LOGS = 1;
-    public final static int GUIDE = 2;
+    public final static int FILE = 0;   /// FILE MODE of operation. Transfering files.
+    public final static int LOGS = 1;   /// LOGS MODE of operation. Transfering LOGS.
+    public final static int GUIDE = 2;  /// GUIDE MODE of operation. Transfering GUIDE.
 
+    /// Used to encoded and decoded packets. (Currently not being used due to BadPaddingException).
     public static byte[] DEFAULT_MUTUAL_SECRET = "x!A%D*G-KaPdSgVk".getBytes();
 
-    private final InetAddress peerAddress;
-    private final Integer key;
-    private final int OPCODE;
-    private final int randomNumber;
-    private final int port; // port of datagram packet.
-    private final int transferMODE;
-    private final int filesize;
-    private final int sequenceNumber;
-    private final String filename;
-    private byte[] dataBytes; // todo: make final
+    private final InetAddress peerAddress;  /// Address of the FTRapid packet.
+    private final Integer key;              /// Id of the FTRapid packet.
+    private final int OPCODE;               /// Identifies packet type (DATA, INIT...).
+    private final int randomNumber;         /// Random number, in case OPCODE=INIT.
+    private final int port;                 /// Port of the FTRapid packet.
+    private final int transferMODE;         /// Transfer mode (FILE, LOG, GUIDE), if relevant.
+    private final int filesize;             /// Size of the transfered file, if OPCODE=META.
+    private final int sequenceNumber;       /// Sequence number if OPCODE=DATA or ACK.
+    private final String filename;          /// Name of the file, if relevant.
+    private byte[] dataBytes;               /// Data of DATA packet. todo: make final
 
+    /// Basic constructor.
     public FTRapidPacket(FTRapidPacket ftRapidPacket){
         this.peerAddress = ftRapidPacket.getPeerAddress();
         this.key = ftRapidPacket.getKey();
@@ -65,6 +65,13 @@ public class FTRapidPacket {
         this.dataBytes = ftRapidPacket.getDataBytes() == null? null : ftRapidPacket.getDataBytes().clone();
     }
 
+    /**
+     * Construct FTRapid packet given a Datagram packet.
+     * A very useful constructor, used everytime we receive a datagram packet.
+     *
+     * @param rcvPacket Received datagram packet.
+     * @param knownMode Known mode of operation (File, Log, Guide) if aplicable.
+     */
     public FTRapidPacket(DatagramPacket rcvPacket, int knownMode) {
         // Local variables
         int local_randomNumber = -1;
@@ -109,12 +116,8 @@ public class FTRapidPacket {
                 local_sequenceNumber = Integer.parseInt(data[1]);
             local_dataBytes = dataStr.split("@", 3)[2].getBytes();
         }
-        else if(tempOpcode == RQF){
-            local_filename = data[1];
-        }
         else{
             tempOpcode = INVALID;
-            System.out.println("OPCODE not found. Packet is invalid.");
         }
 
         this.OPCODE = tempOpcode;
@@ -139,45 +142,9 @@ public class FTRapidPacket {
         }
     }
 
+    /// Key of a given packet: identifies the packet based on a filename and peer address.
     public static Integer calculateFTRapidPacketKey(String filename, InetAddress address){
         return (filename + address.toString()).hashCode();
-    }
-
-    public Integer getKey() {
-        return key;
-    }
-    public int getOPCODE() {
-        return OPCODE;
-    }
-    public int getRandomNumber() {
-        return randomNumber;
-    }
-    public int getPort() {
-        return port;
-    }
-    public String getFilename() {
-        return filename;
-    }
-    public InetAddress getPeerAddress() {
-        return peerAddress;
-    }
-    public int getTransferMODE() {
-        return transferMODE;
-    }
-    public int getFilesize() {
-        return filesize;
-    }
-    public int getSequenceNumber() {
-        return sequenceNumber;
-    }
-    public byte[] getDataBytes() {
-        // Get data of DATA packet.
-        return this.dataBytes;
-    }
-
-    // TODO: REMOVE
-    public void setDataBytes(byte[] data){
-        this.dataBytes = data;
     }
 
     /// GET ACK packet: 0@
@@ -185,16 +152,19 @@ public class FTRapidPacket {
         byte[] packetB = (ACK + "@" + sequenceNumber + "@").getBytes(StandardCharsets.UTF_8);
         return new DatagramPacket(packetB, packetB.length, ADDRESS, PORT);
     }
+
     /// GET INIT packet: 1@random@filename@ => sends always to listener port and peer id saved in syncInfo.
-    public static DatagramPacket getINITPacket(int random, SyncInfo syncInfo){
-        byte[] packetBytes = (FTRapidPacket.INIT + "@" + random + "@" + syncInfo.getFilename() + "@").getBytes(StandardCharsets.UTF_8);
-        return new DatagramPacket(packetBytes, packetBytes.length, syncInfo.getIpAddress(), Listener.LISTENER_PORT);
+    public static DatagramPacket getINITPacket(InetAddress ADDRESS, int PORT, int random, String filename){
+        byte[] packetBytes = (FTRapidPacket.INIT + "@" + random + "@" + filename + "@").getBytes(StandardCharsets.UTF_8);
+        return new DatagramPacket(packetBytes, packetBytes.length, ADDRESS, PORT);
     }
-    /// GET INIT_ACK packet: 2@filename@ => always sends to listener port and peer id saved in syncInfo.
-    public static DatagramPacket getINITACKPacket(SyncInfo syncInfo){
-        byte[] packetBytes = (FTRapidPacket.INIT_ACK + "@" + syncInfo.getFilename() + "@").getBytes(StandardCharsets.UTF_8);
-        return new DatagramPacket(packetBytes, packetBytes.length, syncInfo.getIpAddress(), Listener.LISTENER_PORT);
+
+    /// GET INIT_ACK packet: 2@filename@
+    public static DatagramPacket getINITACKPacket(InetAddress ADDRESS, int PORT, String filename){
+        byte[] packetBytes = (FTRapidPacket.INIT_ACK + "@" + filename + "@").getBytes(StandardCharsets.UTF_8);
+        return new DatagramPacket(packetBytes, packetBytes.length, ADDRESS, PORT);
     }
+
     /// Get META packet: 3@mode@size@ or 3@mode@size@filename@
     public static DatagramPacket getMETAPacket(InetAddress ADDRESS, int PORT, int MODE, int size, String filename){
         // Information we need to send: MODE, data-size, filename (if needed).
@@ -212,6 +182,7 @@ public class FTRapidPacket {
         byte[] metaBytes = metaStr.getBytes(StandardCharsets.UTF_8);
         return new DatagramPacket(metaBytes, metaBytes.length, ADDRESS, PORT);
     }
+
     /// Get DATA packet: 4@seqNum@data
     public static DatagramPacket getDATAPacket(InetAddress ADDRESS, int PORT, int seqNum, byte[] data){
         // DATA packet header info.
@@ -224,22 +195,22 @@ public class FTRapidPacket {
 
         return new DatagramPacket(finalData, finalData.length, ADDRESS, PORT);
     }
-    /// Get RQF packet: 5@filename@
-    public static DatagramPacket getRQFPacket(InetAddress ADDRESS, int PORT, String filename){
-        byte[] packetB = (RQF + "@" + filename + "@").getBytes(StandardCharsets.UTF_8);
-        return new DatagramPacket(packetB, packetB.length, ADDRESS, PORT);
-    }
 
-
+    /**
+     * Used to send a packet through a socket and wait for its response.
+     * @param socket Socket where the packet will be sent from and the response received.
+     * @param packet Packet to be sent. Can be null, depending on the motivation of the caller of \ref sendAndWait.
+     * @return Response of the other peer.
+     */
     public static DatagramPacket sendAndWait(DatagramSocket socket, DatagramPacket packet) {
         try {
             if(packet != null)
-                socket.send(encode(packet, DEFAULT_MUTUAL_SECRET));
+                socket.send(encode(packet));
 
             byte[] receiveData = new byte[FTRapidPacket.BUFFER_SIZE];
             DatagramPacket received = new DatagramPacket(receiveData, receiveData.length);
             socket.setSoTimeout(3500);
-            socket.receive(decode(received, DEFAULT_MUTUAL_SECRET));
+            socket.receive(decode(received));
 
             return new DatagramPacket(received.getData(), received.getLength(), received.getAddress(), received.getPort());
         }
@@ -255,8 +226,21 @@ public class FTRapidPacket {
         }
     }
 
+    /**
+     * Uses the \ref sendAndWait method in loop. Basicly, if the method times out or any error occurs, the loop will run a few times.
+     * The received packet is validated here, acording with the given arguments.
+     * The returned packet is an FTRapid instance, ready to be used.
+     *
+     * @param socket Socket to be passed to \ref sendAndWait method.
+     * @param packet Packet to be sent. Can be null, depending on the motivation of the caller of \ref sendAndWaitLoop.
+     * @param OPCODE Expected OPCODE of the received packet.
+     * @param MODE Expected MODE of operation of the received packet.
+     * @param seqNum Expected sequence number of the received packet.
+     * @param diff Condition is true whene \ref sendAndWaitLoop is called from \ref requestAndReceive.
+     * @return Returns the received packet in FTRapid format.
+     */
     public static FTRapidPacket sendAndWaitLoop(DatagramSocket socket, DatagramPacket packet, int OPCODE, int MODE, int seqNum, boolean diff){
-        int timeOutCounter = 3; // TODO: CHEGA?
+        int timeOutCounter = 3; // TODO: TEST
 
         FTRapidPacket ftRapidPacket = null;
         boolean notOver = true;
@@ -268,23 +252,8 @@ public class FTRapidPacket {
             if(received != null) {
                 ftRapidPacket = new FTRapidPacket(received, MODE);
 
-                // todo: remove
                 if(MODE == FILE && OPCODE == DATA){
-                    String dataStr = new String(received.getData(), StandardCharsets.UTF_8);
-
-                    int i = 0;
-                    int c = 0;
-                    for(; i < dataStr.length() && c < 2; ++i){
-                        if(dataStr.charAt(i) == '@'){
-                            c++;
-                        }
-                    }
-
-                    byte[] goodData = new byte[dataStr.length() - i];
-                    System.arraycopy(received.getData(), i, goodData, 0, goodData.length);
-
-
-                    ftRapidPacket.setDataBytes(goodData);
+                    corruptedBugFix(ftRapidPacket, received.getData());  // TODO: Test
                 }
 
                 if (!diff
@@ -315,15 +284,74 @@ public class FTRapidPacket {
         return ftRapidPacket == null? null : new FTRapidPacket(ftRapidPacket);
     }
 
+    /// Used to solve corruption bug in \ref requestAndReceive. Should probably find another fix.
+    private static void corruptedBugFix(FTRapidPacket ftRapidPacket, byte[] receivedData){
+        // Take the header
+        byte[] goodData = new byte[receivedData.length - getDataHeaderSize()];
+        System.arraycopy(receivedData, getDataHeaderSize(), goodData, 0, goodData.length);
 
-    public static DatagramPacket encode(DatagramPacket packet, byte[] secret){
+        ftRapidPacket.dataBytes = goodData.clone();
+    }
+
+    /// Basic getter.
+    public Integer getKey() {
+        return key;
+    }
+    /// Basic getter.
+    public int getOPCODE() {
+        return OPCODE;
+    }
+    /// Basic getter.
+    public int getRandomNumber() {
+        return randomNumber;
+    }
+    /// Basic getter.
+    public int getPort() {
+        return port;
+    }
+    /// Basic getter.
+    public String getFilename() {
+        return filename;
+    }
+    /// Basic getter.
+    public InetAddress getPeerAddress() {
+        return peerAddress;
+    }
+    /// Basic getter.
+    public int getTransferMODE() {
+        return transferMODE;
+    }
+    /// Basic getter.
+    public int getFilesize() {
+        return filesize;
+    }
+    /// Basic getter.
+    public int getSequenceNumber() {
+        return sequenceNumber;
+    }
+    /// Get data of DATA packet.
+    public byte[] getDataBytes() {
+        return this.dataBytes;
+    }
+    /// Get DATA header packet size.
+    public static int getDataHeaderSize(){
+        return (DATA + "@" + DATA + "@").getBytes(StandardCharsets.UTF_8).length;
+    }
+
+    /**
+     * Currently not working due to BadPaddingException.
+     *
+     * @param packet Packet to be encoded.
+     * @return Encoded packet (using AES and symetric key).
+     */
+    public static DatagramPacket encode(DatagramPacket packet){
         return packet;
         /*
         // Encode data.
         byte[] data = packet.getData();
         byte[] encryptedData;
         try {
-            Key AES_KEY = new SecretKeySpec(secret, "AES");
+            Key AES_KEY = new SecretKeySpec(DEFAULT_MUTUAL_SECRET, "AES");
             Cipher senderCipher = Cipher.getInstance("AES");
             senderCipher.init(Cipher.ENCRYPT_MODE, AES_KEY);
             encryptedData = senderCipher.doFinal(data);
@@ -337,13 +365,19 @@ public class FTRapidPacket {
         */
     }
 
-    public static DatagramPacket decode(DatagramPacket packet, byte[] secret) {
+    /**
+     * Currently not working due to BadPaddingException.
+     *
+     * @param packet Packet to be decoded.
+     * @return Decoded packet (using AES and symetric key).
+     */
+    public static DatagramPacket decode(DatagramPacket packet) {
         return packet;
         /*
         byte[] dataBytes = packet.getData();
         byte[] decrypted;
         try {
-            Key AES_KEY = new SecretKeySpec(secret, "AES");
+            Key AES_KEY = new SecretKeySpec(DEFAULT_MUTUAL_SECRET, "AES");
 
             Cipher receiverCipher = Cipher.getInstance("AES");
             receiverCipher.init(Cipher.DECRYPT_MODE, AES_KEY);
@@ -358,12 +392,12 @@ public class FTRapidPacket {
     }
 
 
-    @Override
+    // Basic get hashCode method.
     public int hashCode() {
         return this.key;
     }
 
-    @Override
+    /// Basic equals method.
     public boolean equals(Object o){
         if (this == o) return true;
         if (o == null) return false;

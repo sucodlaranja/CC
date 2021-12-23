@@ -15,21 +15,22 @@ import java.util.List;
 
 import Logs.TransferLogs;
 
+/// This class is used to receive data from the other peer.
+/**
+ * Receiver class has a method (\ref requestAndReceive) that requests a file, gets it through a Datagram socket and saves it.
+ * This method can also receive other kinds of data, such as Logs and Guides.
+ */
 public class ReceiverSNW {
 
     
     private final DatagramSocket socket; ///< Data will be sent from this socket to the address and port bellow.
-    private final InetAddress ADDRESS;
-    private int PORT; ///< starts as listenerPort and then represents senders port.
-
-    
+    private final InetAddress ADDRESS; /// < Peer address.
+    private int PORT; ///< Starts as a syncHandler/transferHandler port and then represents port of the thread created to handle the transfer.
     private final int MODE; ///< Mode can be FILE, LOGS or GUIDE.
+    private final String filepath; /// < Filepath is the complete filepath to the file.
+    private final String filename; /// < Filename is the name of the file being received.
 
-    /// Filename/path.
-    private final String filepath;
-    private final String filename;
-
-    /// Requesting and receiving files.
+    /// Constructor for requesting and receiving files.
     public ReceiverSNW(InetAddress address, int handlerPort, String filepath, String filename){
 
         // Local vars.
@@ -52,7 +53,7 @@ public class ReceiverSNW {
         this.PORT = handlerPort;
     }
 
-    /// LOGS and GUIDE.
+    /// Constructor for receiving LOGS and GUIDE.
     public ReceiverSNW(DatagramSocket socket, int MODE, InetAddress address, int handlerPort){
         this.socket = socket;
         this.MODE = MODE;
@@ -62,14 +63,23 @@ public class ReceiverSNW {
         this.filepath = "";
     }
 
-    /// Request the file to the other peer. Sending packet to the transfer handler listener.
+    ///
     /// Wait and approve META by sending an ACK packet to the sender socket.
+
+    /**
+     * Request the file to the other peer. Send a INIT_ACK packet to syncHandler/transferHandler listener.
+     * After that, receive META packet and prepare to start receiving file/log/guide.
+     * Receive data in stop-and-wait fashion.
+     * Save the file in the given path.
+     *
+     * @return Return list where get(0) is the received data and get(1) is the transfer statistics.
+     */
     public List<Object> requestAndReceive() {
 
         DatagramPacket packet2beSent = null;
         if(this.MODE == FTRapidPacket.FILE)
-            // Create RQF (request file) packet. Only useful if MODE=FILE. PORT corresponds to listener port.
-            packet2beSent = FTRapidPacket.getRQFPacket(this.ADDRESS, this.PORT, this.filename);
+            // Create INIT_ACK (request file) packet. Only useful if MODE=FILE. PORT corresponds to listener port.
+            packet2beSent = FTRapidPacket.getINITACKPacket(this.ADDRESS, this.PORT, this.filename);
         else if(this.MODE == FTRapidPacket.LOGS)
             // Create ACK packet. Useful if MODE=LOGS. We need to aknowledge INIT_ACK packet and wait for META.
             packet2beSent = FTRapidPacket.getACKPacket(this.ADDRESS, this.PORT, FTRapidPacket.CONTROL_SEQ_NUM);
@@ -120,7 +130,7 @@ public class ReceiverSNW {
         // If the message doesn't get through, the sender will still be able to finish.
         DatagramPacket ACK = FTRapidPacket.getACKPacket(ADDRESS, PORT, prevSeqNum);
         try {
-            this.socket.send(FTRapidPacket.encode(ACK, FTRapidPacket.DEFAULT_MUTUAL_SECRET));
+            this.socket.send(FTRapidPacket.encode(ACK));
         }
         catch (IOException e){
             e.printStackTrace();
@@ -160,13 +170,21 @@ public class ReceiverSNW {
         long elapsedTime = end - start;
         double bitsPSeg = ((fileBytes.length * 0.001)  / (elapsedTime * 0.001)); // bytes por segundo
 
+        // Received file and stats. Don't send filebytes if MODE=FILE.
         List<Object> retList = new ArrayList<>(2);
-        retList.add(0,fileBytes.clone());
+        retList.add(0, this.MODE == FTRapidPacket.FILE? null : fileBytes.clone());
         retList.add(1,new TransferLogs(this.filename,false,elapsedTime,bitsPSeg));
 
         return retList;
     }
 
+    /**
+     * Takes all the packets that the \ref requestAndReceive method received and puts them all in the same byte array.
+     *
+     * @param packetsSplit All the packets received in \ref requestAndReceive method.
+     * @param LAST_PACKET_DATA_SIZE Size of the last data packet.
+     * @return Returns all the packets merged into a single byte array.
+     */
     private byte[] collapse(List<byte[]> packetsSplit, int LAST_PACKET_DATA_SIZE) {
         byte[] ret = new byte[(packetsSplit.size() - 1) * FTRapidPacket.DATA_CONTENT_SIZE + LAST_PACKET_DATA_SIZE];
 

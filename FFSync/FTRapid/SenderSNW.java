@@ -11,7 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import Logs.TransferLogs;
-/// (descricao breve se quiseres (recomendo))
+
+/// This class is used to send data to another peer.
 /**
  * Used to send DATA packets. DATA packets can contain a portion of a file, a Log or a Guide.
  * To send a file we only need its path. The path must be given to the constructor.
@@ -21,27 +22,19 @@ import Logs.TransferLogs;
 public class SenderSNW {
 
     
-    public final int MODE; ///< Mode of operation (can be FILE, LOG, GUIDE).
+    public final int MODE;               ///< Mode of operation (can be FILE, LOG, GUIDE).
+    private final String FILEPATH;       ///< Filepath (if needed).
+    private final byte[] dataToSend;     ///< Data to be sent.
+    private final DatagramSocket socket; ///< Data will be sent from this socket to the address bellow.
+    private final InetAddress ADDRESS;   ///< Peer address.
+    private final int PORT;              ///< Port where to send file.
+    private boolean allOK;               ///< Check if the constructor did its job correctly before starting \ref send.
 
-    
-    private final String FILEPATH; ///< Filepath (if needed).
-
-    
-    private final byte[] dataToSend; ///< Data to be sent.
-
-   
-    private final DatagramSocket socket;  ///< Data will be sent from this socket to the address bellow.
-    private final InetAddress ADDRESS;
-    private final int PORT;
-
-    
-    private boolean allOK; ///< Check if sender constructor did its job correctly.
-
-    /// Sending File
+    /// Constructor for sending FILE
     public SenderSNW(InetAddress address, int PORT, String filepath){
         // Local variables.
         DatagramSocket localSocket = null;
-        int localMode = FTRapidPacket.ERROR;
+        int localMode = FTRapidPacket.INVALID;
         String localPath = "";
         byte[] localData = null;
         allOK = false;
@@ -81,7 +74,7 @@ public class SenderSNW {
         }
     }
 
-    /// Sending LOG or GUIDE.
+    /// Constructor for sending LOG or GUIDE.
     public SenderSNW(DatagramSocket socket, InetAddress address, int PORT, byte[] data, int mode){
         this.socket = socket;
         this.ADDRESS = address;
@@ -92,14 +85,18 @@ public class SenderSNW {
         this.allOK = true;
     }
 
-    /// Send file to another peer, after sending META packet.
-    // TODO: RETURN SOMETHING USEFUL -> sent/not sent, stats...
+    /**
+     * Send file to another peer, after sending META packet.
+     * Files are sent in stop-and-wait fashion.
+     *
+     * @return Returning transfer stats such as time of transfer.
+     */
     public TransferLogs send(){
         // Constructor failed.
         if(!allOK)
             return null;
 
-        // Let's split the byte[] dataToSend into many packets (use packet size determined in FTRapidPacket class).
+        // Split the byte[] dataToSend into many packets (use packet size determined in FTRapidPacket class).
         List<byte[]> allPackets = split(this.dataToSend);
 
         DatagramPacket metaPacket = FTRapidPacket.getMETAPacket(ADDRESS, PORT, this.MODE, dataToSend.length, this.FILEPATH);
@@ -107,8 +104,7 @@ public class SenderSNW {
         if(FTRapidPacket.sendAndWaitLoop(this.socket, metaPacket, FTRapidPacket.ACK, this.MODE, 1, false) == null)
             return null;
 
-
-        // TODO: start timer
+        // Start timer
         long start = System.currentTimeMillis();
 
         int counter = 0;
@@ -119,9 +115,6 @@ public class SenderSNW {
             DatagramPacket dataPacket = FTRapidPacket.getDATAPacket(this.ADDRESS, this.PORT, seqNum, packData);
             if(FTRapidPacket.sendAndWaitLoop(this.socket, dataPacket, FTRapidPacket.ACK, this.MODE, seqNum, false) == null)
                 return null;
-
-            System.out.println("Sended packet " + counter + "/" + (allPackets.size() - 1)); // TODO: REMOVE
-            counter++;// TODO: REMOVE
 
             // Change sequence number.
             seqNum = seqNum == 0? 1 : 0;
@@ -138,26 +131,22 @@ public class SenderSNW {
         // Printing stats
         long elapsedTime = end - start;
         double bitsPSeg = ((this.dataToSend.length * 0.001)  / (elapsedTime * 0.001)); // bytes por segundo
+
+        // TODO: REMOVE ?
         System.out.println(this.FILEPATH + " was sent in " + elapsedTime + " mili seconds.");
         System.out.println("Average speed of " + bitsPSeg + " KB/s");
-
-
-        /*
-        Packet = 512
-        * /home/rubensas/Desktop/teste/velho_big.txt was sent in 10254 mili seconds.
-        * Average speed of 2.1140403744880047E8 KB/s
-        *
-        Packet = 800
-        * /home/rubensas/Desktop/teste/velho_big.txt was sent in 7514 mili seconds.
-        * Average speed of 2.884930795847751E8 KB/s
-        * */
-
-        // ALL IS OK.
 
         return new TransferLogs(this.FILEPATH,true,elapsedTime,bitsPSeg);
     }
 
-    /// Split byte[] into list. Packet Size defined in FTRapidPacket class.
+
+    /**
+     * Split byte[] into list of byte[] each with a specific packet size given in FTRapidPacket class.
+     * Used to split a file into data packets ready to be send to another peer.
+     *
+     * @param data Data to be split.
+     * @return List of byte[] each with a specific size.
+     */
     private List<byte[]> split(byte[] data) {
         // Size of each packet.
 

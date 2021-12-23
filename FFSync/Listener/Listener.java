@@ -112,7 +112,7 @@ public class Listener implements Runnable{
             byte[] rcvPacketBuf = new byte[FTRapidPacket.BUFFER_SIZE];
             DatagramPacket rcvPacket = new DatagramPacket(rcvPacketBuf, rcvPacketBuf.length);
             try {
-                this.datagramSocket.receive(FTRapidPacket.decode(rcvPacket, FTRapidPacket.DEFAULT_MUTUAL_SECRET));
+                this.datagramSocket.receive(FTRapidPacket.decode(rcvPacket));
             }
             // Socket was closed. Lock&Clean the house and leave.
             catch (SocketException e){
@@ -130,7 +130,7 @@ public class Listener implements Runnable{
             if(!this.datagramSocket.isClosed() && close){
                 lock.lock();
                 try {
-                    rcvFTRapidPackets.add(new FTRapidPacket(rcvPacket, FTRapidPacket.ERROR));
+                    rcvFTRapidPackets.add(new FTRapidPacket(rcvPacket, FTRapidPacket.INVALID));
                 }
                 catch (Exception e){
                     System.out.println("Adding packets to received packet set failed.");

@@ -58,10 +58,10 @@ public class SyncHandler implements Runnable{
 
         // Create a packet with random number.
         this.ourRandom = new Random().nextInt();
-        this.randomNumberPacket = FTRapidPacket.getINITPacket(this.ourRandom, this.syncInfo);
+        this.randomNumberPacket = FTRapidPacket.getINITPacket(this.getInfo().getIpAddress(), Listener.LISTENER_PORT, this.ourRandom, this.syncInfo.getFilename());
 
+        // Instance of TransferHistory.
         this.syncHistory = new TransferHistory();
-
         this.ourLogs = null;
     }
 
@@ -89,7 +89,7 @@ public class SyncHandler implements Runnable{
             return null; // ABORT SYNC = null.
 
         // Create INIT_ACK packet (default port is LISTENER).
-        DatagramPacket init_ack = FTRapidPacket.getINITACKPacket(this.syncInfo);
+        DatagramPacket init_ack = FTRapidPacket.getINITACKPacket(this.getInfo().getIpAddress(), Listener.LISTENER_PORT, this.syncInfo.getFilename());
 
         FTRapidPacket ackPacket = FTRapidPacket.sendAndWaitLoop(this.syncSocket, init_ack, FTRapidPacket.ACK, FTRapidPacket.LOGS, FTRapidPacket.CONTROL_SEQ_NUM, false);
         if(ackPacket != null)
@@ -174,7 +174,7 @@ public class SyncHandler implements Runnable{
                 case 0 -> {
                     // Send random number to other peer.
                     try {
-                        this.syncSocket.send(FTRapidPacket.encode(this.randomNumberPacket, FTRapidPacket.DEFAULT_MUTUAL_SECRET));
+                        this.syncSocket.send(FTRapidPacket.encode(this.randomNumberPacket));
                     }
                     catch (SocketException e){
                         System.out.println("SyncSocket closed.");
