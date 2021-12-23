@@ -12,26 +12,36 @@ import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 import java.util.*;
 
+/// This class will create all the threads that send and receive files.
 /**
- * Handle the guide.
+ * This class will create and manage all the threads. \n
+ * Will use method \ref processTransfers as its core.
  *
  * */
 public class TransferHandler {
 
+    /// Shared information between TransferHandler and the other threads.Will also store info.
     private final ThreadPool threadPool;
+    /// Shared information between TransferHandler and the Listener it creates.
     private final FilesWaitingRequestPool filesWaitingRequestPool;
 
-    // Used for processTransfers.
+    /// Won't allow system to run more that once.
     private boolean checkProcessTransfers;
+    /// The guide this class will follow.
     private final Guide transfersGuide;
-    private final String filepath;
+    /// The folder path of this sync.
+    private final String folderPath;
+    /// Socket where the Listener will listen.
     private final DatagramSocket syncSocket;
+    /// Ip to communicate to
     private final InetAddress address;
+    /// Port to communicate to
     private final int handlerPort;
+    /// If it has the bigger number of the protocol. If it created the guide or not.
     private final boolean biggerNumber;
 
 
-    // Basic Constructor
+    /// Basic Constructor
     public TransferHandler(int maxThreads, Guide transfersGuide, String filepath,
                            DatagramSocket syncSocket, InetAddress ipAddress, int handlerPort, boolean biggerNumber)
     {
@@ -39,25 +49,32 @@ public class TransferHandler {
         this.filesWaitingRequestPool = new FilesWaitingRequestPool();
         this.checkProcessTransfers = false;
         this.transfersGuide = transfersGuide;
-        this.filepath = filepath;
+        this.folderPath = filepath;
         this.syncSocket = syncSocket;
         this.address = ipAddress;
         this.handlerPort = handlerPort;
         this.biggerNumber = biggerNumber;
     }
 
-    // Threads that listen for requests
+    /**
+     * Private class only used by \ref TransferHandler. \n
+     * This class will listen to requests and create the appropriate threads to respond. \n
+     * If there is no more requests that it is expecting to receive, it waits for a signal whit method \ref sleepIfEmpty.
+     */
     private class Listener implements Runnable{
 
-        private final DatagramSocket syncSocket; // onde o listener vai ouvir
-        private final String filepath; // Add to filename to get the full path
+        /// Socket where it will listen
+        private final DatagramSocket syncSocket;
+        /// Path of the folder of this sync
+        private final String folderPath;
 
         // Basic Constructor
         public Listener(DatagramSocket syncSocket,String filepath){
             this.syncSocket = syncSocket;
-            this.filepath = filepath;
+            this.folderPath = filepath;
         }
 
+        /// This method will listen to 1 request and end.
         public FTRapidPacket listen(){
             // Create a byte array to receive request.
             byte[] receiveData = new byte[FTRapidPacket.BUFFER_SIZE];
@@ -69,7 +86,7 @@ public class TransferHandler {
                 syncSocket.receive(FTRapidPacket.decode(received, FTRapidPacket.DEFAULT_MUTUAL_SECRET));
             }
             catch (SocketTimeoutException e){
-                System.out.println("TransferHandler Listener timedout.");
+                System.out.println("TransferHandler Listener timeout."); //TODO REMOVER ????
             }
             catch (IOException e) {
                 e.printStackTrace();
@@ -78,11 +95,14 @@ public class TransferHandler {
             return new FTRapidPacket(received, FTRapidPacket.INVALID);
         }
 
+        /**
+         * Ends when \ref getFinish is true and the previous iteration did not give out a filename. \n
+         * Sleeps if there is no request to ear (set is empty). \n
+         * If the filename we read is on the set we create a thread to send it to the peer.
+         */
         @Override
         public void run() {
             String filename;
-
-            System.out.println("transfer_handler_listener_online"); // TODO: REMOVE
 
             // ends when finish is true and the previous iteration did not give out a filename
             do{
@@ -95,31 +115,40 @@ public class TransferHandler {
 
                 // if the filename we read is on the set we create a thread to send it to the other person.
                 if (filesWaitingRequestPool.removeUpcomingFiles(filename)){
-                    String completeFilepath = getCompleteFilepath(filepath, filename);
+                    String completeFilepath = getCompleteFilepath(folderPath, filename);
                     Thread t = new Thread(new SendFile(communicateToPort, ipAddress, completeFilepath));
                     t.start();
                 }
 
             } while(!filesWaitingRequestPool.getFinish() || !filename.equals(""));
-
-            System.out.println("transfer_handler_listener_offline"); // TODO: REMOVE
         }
     }
 
-    // Threads that sends a file
+    /**
+     * Private class only used by \ref TransferHandler. \n
+     * This class will send a file.
+     */
     private class SendFile implements Runnable{
-        // começa a enviar um file
 
+        /// Port to send to.
         private final int sendToPort;
+        /// IP to send to.
         private final InetAddress sendToIpAddress;
+        /// Complete filepath
         private final String filepath; // this is the complete filepath
 
+        /// Basic constructor
         public SendFile(int sendToPort,InetAddress sendToIpAddress,String filepath){
             this.sendToPort = sendToPort;
             this.sendToIpAddress = sendToIpAddress;
             this.filepath = filepath;
         }
 
+        /**
+         * Send a file with the help of \ref SenderSNW. \n
+         * Adds info of the sent file to the \ref ThreadPool. \n
+         * Also communicates that 1 more thread is allowed
+          */
         @Override
         public void run() {
             // Send file.
@@ -130,44 +159,67 @@ public class TransferHandler {
         }
     }
 
-    // Threads that requests and receives a file.
+    /**
+     * Private class only used by \ref TransferHandler. \n
+     * This class will request and receive a file.
+     */
     private class ReceiveFile implements Runnable{
-        // esabelece concecção e recebe o file
 
+        /// Port to send request.
         private final int port;
+        /// IP to send request.
         private final InetAddress address;
-        private final String filepath;
+        /// The folder path of this sync.
+        private final String folderPath;
+        /// Filename we want to request.
         private final String filename;
 
+        /// Basic Constructor
         public ReceiveFile(int port, InetAddress address, String filepath, String filename){
             this.port = port;
             this.address = address;
-            this.filepath = filepath;
+            this.folderPath = filepath;
             this.filename = filename;
         }
 
+        /**
+         * Request and Receive a file with the help of \ref receiverSNW. \n
+         * Adds info of the received file to the \ref ThreadPool. \n
+         * Also communicates that 1 more thread is allowed.
+         */
         @Override
         public void run() {
-            ReceiverSNW receiverSNW = new ReceiverSNW(this.address, this.port, getCompleteFilepath(filepath, filename), this.filename);
+            ReceiverSNW receiverSNW = new ReceiverSNW(this.address, this.port, getCompleteFilepath(folderPath, filename), this.filename);
             List<Object> list = receiverSNW.requestAndReceive();
             if (list != null) threadPool.addTransferLogs((TransferLogs) list.get(1));
             threadPool.inc_dec_nMaxFiles(1);
         }
     }
 
-    // Checks in what way to interpreter the queue
-    // (It depends on if I am the one that creates the guide and what the guide says)
-    private boolean doIRequest(boolean biggerNumber, boolean isSenderOrReceiver){ // TODO: NOMES CONFUSOS...
+    /// Checks in what way to interpreter the queue.Depends on if I am the one that creates the guide what it orders.
+    private boolean doIRequest(boolean biggerNumber, boolean isSenderOrReceiver){
         if (biggerNumber) return isSenderOrReceiver;
         else return !isSenderOrReceiver;
     }
 
-    // Creates a correct filepath (in terms of format).
-    public String getCompleteFilepath(String filepath, String filename){
+    /// Creates a correct filepath (in terms of format).
+    private String getCompleteFilepath(String filepath, String filename){
         return filepath.charAt(filepath.length() - 1) == '/' ? filepath + filename : filepath + "/" + filename;
     }
 
-    // Main method of this class
+
+    /**
+     * Main method of this class. \n
+     * It can only run once. \n
+     * Creates a listener to listen to requests. \n
+     * Will follow a guide when there is space for more threads. \n
+     * Either creates a thread to Request or adds files to wait for request. \n
+     * If there is no more space for threads, it waits for 1 to end with the help of \ref inc_dec_nMaxFiles. \n
+     * In the end waits for all threads to finish whit \ref waitForAllThreadsToFinish. \n
+     * Then signals the listener to end and waits for him to end.
+     *
+     * @return The set whit the Every transfer info(Velocity,Time).
+     */
     public Set<TransferLogs> processTransfers(){
         // Get guide.
         Queue<TransferLogs> guide = this.transfersGuide.getGuide();
@@ -177,16 +229,14 @@ public class TransferHandler {
             return threadPool.getTransferLogs();
 
         // Creates a listener to listen to requests.
-        Thread listener = new Thread(new Listener(syncSocket, filepath));
+        Thread listener = new Thread(new Listener(syncSocket, folderPath));
         listener.start();
 
         // Saves the size of the guide of transfers and the maximum of threads allowed per connection
         int size = guide.size();
         int max_files = threadPool.getNMaxFiles();
 
-        System.out.println("guide_size=" + size); // TODO: REMOVE
-
-        // ends whene there are no more files in the guide
+        // ends when there are no more files in the guide
         while (size > 0 ){
 
             //  Removes the first transfer in the guide
@@ -195,15 +245,12 @@ public class TransferHandler {
 
             // Verifies if I am the one to request the file
             if (doIRequest(biggerNumber,oneTransfer.sender())) {
-
-                System.out.println("requesting file=" + oneTransfer.fileName()); // TODO: REMOVE
                 // Starts the thread to request the file
-                Thread t = new Thread(new ReceiveFile(handlerPort, address, filepath ,oneTransfer.fileName()));
+                Thread t = new Thread(new ReceiveFile(handlerPort, address, folderPath,oneTransfer.fileName()));
                 t.start();
             }
             // Adds the file on the set of files that the other user wants to transfer
             else {
-                System.out.println("other_peer_will_ask_for=" + oneTransfer.fileName());
                 filesWaitingRequestPool.addUpcomingFiles(oneTransfer.fileName());
             }
 
@@ -212,28 +259,9 @@ public class TransferHandler {
             size--;
         }
 
-
-        // TODO :ESPERAR ALGUM TEMPO ???
-
-        System.out.println("maxFiles:" + (max_files));
-
-
-        // checkar set..
-        // TODO: será que é worth it?
-        /*
-        int s;
-        while((s = filesWaitingRequestPool.size()) > 0){
-            sleep(5);
-            if(s == filesWaitingRequestPool.size()) break;
-        }
-        */
-
         // Waits for all threads to finish
         threadPool.waitForAllThreadsToFinish(max_files);
 
-        System.out.println("maxFiles:" + (max_files));
-
-        System.out.println("vou mandar acordar este gajo-----------------------");
         filesWaitingRequestPool.setFinish();
         try {
             listener.join();
@@ -241,7 +269,6 @@ public class TransferHandler {
         catch (InterruptedException e) {
             e.printStackTrace();
         }
-
 
         this.checkProcessTransfers = true;
         return threadPool.getTransferLogs();

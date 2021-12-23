@@ -6,20 +6,21 @@ import java.util.Set;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+///This class serves has the shared instances between the class TransferHandler and the threads she creates to send and receive files.
 /**
- * This class serves has the shared instances between the class Transfers.TransferHandler and the threads she creates.
- * When the number of threads gets to the max the condition is activated.
+ * This class maintains the order between all the threads that send and receive files.
+ * It makes TransferHandler only use \ref nMaxThreads and stores every transfer information on the set.
  * */
 public class ThreadPool{
 
-    /*
-     number of maximum threads that the system creates
-     this number will start at max and will decrease by each thread created
-     and will increase by each thread that ends.
-     */
+
+    ///Number of maximum threads that the system creates
     private int nMaxThreads;
-    private Set<TransferLogs> completedTransfers;
+    /// Set with all the info of all transfers
+    private final Set<TransferLogs> completedTransfers;
+    /// Basic Reentrant Lock.
     private final ReentrantLock lock;
+    /// Basic Condition.
     private final Condition condition;
 
     // Basic Constructor
@@ -30,9 +31,41 @@ public class ThreadPool{
         this.condition = lock.newCondition();
     }
 
-    /*
-     Compare the number of maxThreadsAllowed to the number of nMaxThreads (number of thread spaces still free)
-     Waits until all threads finish
+    /// Adds the information of a transfer to the set.
+    public void addTransferLogs(TransferLogs transferLogs){
+        lock.lock();
+        try {
+            completedTransfers.add(transferLogs);
+        }  finally {
+            lock.unlock();
+        }
+    }
+
+    /// Basic get method.
+    public Set<TransferLogs> getTransferLogs(){
+        lock.lock();
+        try {
+            return new HashSet<>(completedTransfers);
+        }  finally {
+            lock.unlock();
+        }
+    }
+
+    /// Simple get method
+    public int getNMaxFiles(){
+        lock.lock();
+        try {
+            return nMaxThreads;
+        }
+        finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Compare the number of maxThreadsAllowed to the number of nMaxThreads (number of thread spaces still free)
+     * Waits until all the number hits it´s maximum. It means that all threads created finish.
+     * @param maxThreadsAllowed Number of maximum threads.
      */
     public void waitForAllThreadsToFinish(int maxThreadsAllowed) {
         lock.lock();
@@ -46,37 +79,15 @@ public class ThreadPool{
         }
     }
 
-    public void addTransferLogs(TransferLogs transferLogs){
-        lock.lock();
-        try {
-           completedTransfers.add(transferLogs);
-        }  finally {
-            lock.unlock();
-        }
-    }
 
-    public Set<TransferLogs> getTransferLogs(){
-        lock.lock();
-        try {
-            return new HashSet<>(completedTransfers);
-        }  finally {
-            lock.unlock();
-        }
-    }
-
-    // Simple get method
-    public int getNMaxFiles(){
-        lock.lock();
-        try {
-            return nMaxThreads;
-        }
-        finally {
-            lock.unlock();
-        }
-    }
-
-    /*
-    Increases and decreases the number of max allowed threads
+    /**
+     * Increases and decreases the number of max allowed threads.
+     * If the number decreases 0 then it makes \ref TransferHandler
+     * wait for a signal because there is no more threads available to transfer files.
+     * If the number increases to 1, it means that the \ref TransferHandler is sleeping, and we need to wake it up
+     * , because there is room for more threads.
+     *
+     * @param incOrDec could be 1 or -1. Will determine what we will do.
      */
     public void inc_dec_nMaxFiles(int incOrDec){
         lock.lock();
@@ -89,9 +100,7 @@ public class ThreadPool{
 
             //If the number of max threads is 0 the handler will go to sleep
             else if (incOrDec == -1 && nMaxThreads == 0) {
-                System.out.println("Adormeci");
                 condition.await();
-                System.out.println("Acordei");
             }
         } catch (InterruptedException e) {
             e.printStackTrace();

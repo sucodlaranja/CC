@@ -5,19 +5,24 @@ import java.util.Set;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+/// This class contains the request we expect in the \ref TransferHandler.
 /**
- * This class serves has the shared instances between the class Transfers.TransferHandler and Listener.Listener it creates.
- * When there is no files in the set the listener sleeps.
+ * This class serves has the shared instances between the class \ref TransferHandler and \ref TransferHandler.Listener.\n
+ * This class will be used by various threads, so it needs locks and condition.
+ * The condition will make threads sleep when there is no need to be working.
  * */
 public class FilesWaitingRequestPool{
 
-    private boolean finish; // Can the listener end ?
-    private final Set<String> upcomingFiles; // Set whit every filename that the listener will receive a request for.
-
+    /// Will be true where there is no more requests to be listened to.
+    private boolean finish;
+    /// Set whit every filename that the listener will receive a request for.
+    private final Set<String> upcomingFiles;
+    /// Basic Reentrant Lock.
     private final ReentrantLock lock;
+    /// Basic Condition.
     private final Condition condition;
 
-    // Basic Constructor
+    /// Basic Constructor
     public FilesWaitingRequestPool() {
         finish = false;
         upcomingFiles = new HashSet<>();
@@ -25,7 +30,7 @@ public class FilesWaitingRequestPool{
         condition = lock.newCondition();
     }
 
-    // Simple get method
+    /// Simple get method whit locks
     public boolean getFinish() {
         lock.lock();
         try {
@@ -36,7 +41,10 @@ public class FilesWaitingRequestPool{
         }
     }
 
-    // Change finish true and signals the listener to stop
+    /**
+     * This method will set the instance \b finish to true to make the listener. \n
+     * Also wakes \b Listener up if he is asleep.
+     */
     public void setFinish() {
         lock.lock();
         try {
@@ -48,14 +56,12 @@ public class FilesWaitingRequestPool{
         }
     }
 
-    // If there is no file waiting for request listener sleeps
+
+    /// If there is no request pending make the listener sleep.
     public void sleepIfEmpty(){
         lock.lock();
         try {
-            System.out.println("a ir dormir--------------------------------------");
-            if (upcomingFiles.isEmpty())
-                condition.await();
-            System.out.println("ja dormi tudo crl -------------------------------------------------");
+            if (upcomingFiles.isEmpty()) condition.await();
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {
@@ -63,7 +69,7 @@ public class FilesWaitingRequestPool{
         }
     }
 
-    // Adds filename to set and wakes up the listener
+    // Adds filename to set and wakes up the listener if it is sleeping.
     public void addUpcomingFiles(String fileName){
         lock.lock();
         try {
@@ -76,7 +82,7 @@ public class FilesWaitingRequestPool{
         }
     }
 
-    // Tries to remove a filename from the set and returns the result
+    /// Tries to remove a filename from the set and returns the result
     public boolean removeUpcomingFiles(String fileName){
         lock.lock();
         try {
@@ -87,7 +93,7 @@ public class FilesWaitingRequestPool{
         }
     }
 
-    // Returns the number files that are on the set
+    /// Returns the number files that are on the set
     public int size(){
         lock.lock();
         try {
