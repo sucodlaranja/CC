@@ -21,17 +21,17 @@ import FTRapid.FTRapidPacket;
   */
 public class Listener implements Runnable{
 
-    public static final int LISTENER_PORT = 8000;   // Default value for the socket port.
+    public static final int LISTENER_PORT = 8000;   ///< Default value for the socket port.
 
     // Feedback given to a specific syncHandler.
-    public static final int REQUEST_NOT_FOUND = 0;  // Request not found or INIT packet received has inferior random.
-    public static final int INFERIOR_RANDOM = 1;    // INIT packet received has a superior random.
-    public static final int SUPERIOR_RANDOM = 2;    // Received a INIT_ACK packet meaning our random is superior.
-    public static final int EQUAL_RANDOM = -1;      // INIT packet received has the same random number as ours.
+    public static final int REQUEST_NOT_FOUND = 0;  ///< Request not found or INIT packet received has inferior random.
+    public static final int INFERIOR_RANDOM = 1;    ///<  INIT packet received has a superior random.
+    public static final int SUPERIOR_RANDOM = 2;    ///<  Received a INIT_ACK packet meaning our random is superior.
+    public static final int EQUAL_RANDOM = -1;      ///<  INIT packet received has the same random number as ours.
 
-    private static Set<FTRapidPacket> rcvFTRapidPackets = null;     // Received and different FTRapid packets.
-    private final DatagramSocket datagramSocket;                    // Listener socket.
-    private static final ReentrantLock lock = new ReentrantLock();  // Locks is used to control access to Set.
+    private static Set<FTRapidPacket> rcvFTRapidPackets = null;     ///<  Received and different FTRapid packets.
+    private final DatagramSocket datagramSocket;                    ///<  Listener socket.
+    private static final ReentrantLock lock = new ReentrantLock();  ///<  Locks is used to control access to Set.
 
     public Listener() throws SocketException {
         rcvFTRapidPackets = new HashSet<>();

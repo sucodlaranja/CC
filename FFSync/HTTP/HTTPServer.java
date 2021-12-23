@@ -27,12 +27,10 @@ import HistoryRecorder.TransferHistory;
 
 public class HTTPServer implements Runnable {
 
-    /// ServerSocket for the HTTP server
-    private final ServerSocket serverSocket;
-    /// Port that the http server is listening on.
-    private final int port;
-    /// Path that has files with info of all syncs.
-    public static String HTTP_FILEPATH = "HistorySaved";
+    
+    private final ServerSocket serverSocket; ///< ServerSocket for the HTTP server.
+    private final int port; ///< Port that the http server is listening on.
+    public static String HTTP_FILEPATH = "HistorySaved"; ///< Path that has files with info of all syncs.
 
     /**
      * Constructor that receives the \ref port that the HTTP server will listen

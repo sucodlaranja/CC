@@ -20,22 +20,22 @@ import Logs.TransferLogs;
  * */
 public class SenderSNW {
 
-    /// Mode of operation (can be FILE, LOG, GUIDE).
-    public final int MODE;
+    
+    public final int MODE; ///< Mode of operation (can be FILE, LOG, GUIDE).
 
-    /// Filepath (if needed).
-    private final String FILEPATH;
+    
+    private final String FILEPATH; ///< Filepath (if needed).
 
-    /// Data to be sent.
-    private final byte[] dataToSend;
+    
+    private final byte[] dataToSend; ///< Data to be sent.
 
-    /// Data will be sent from this socket to the address bellow.
-    private final DatagramSocket socket;
+   
+    private final DatagramSocket socket;  ///< Data will be sent from this socket to the address bellow.
     private final InetAddress ADDRESS;
     private final int PORT;
 
-    /// Check if sender constructor did its job correctly.
-    private boolean allOK;
+    
+    private boolean allOK; ///< Check if sender constructor did its job correctly.
 
     /// Sending File
     public SenderSNW(InetAddress address, int PORT, String filepath){
@@ -92,7 +92,7 @@ public class SenderSNW {
         this.allOK = true;
     }
 
-    // Send file to another peer, after sending META packet.
+    /// Send file to another peer, after sending META packet.
     // TODO: RETURN SOMETHING USEFUL -> sent/not sent, stats...
     public TransferLogs send(){
         // Constructor failed.
@@ -157,7 +157,7 @@ public class SenderSNW {
         return new TransferLogs(this.FILEPATH,true,elapsedTime,bitsPSeg);
     }
 
-    // Split byte[] into list. Packet Size defined in FTRapidPacket class.
+    /// Split byte[] into list. Packet Size defined in FTRapidPacket class.
     private List<byte[]> split(byte[] data) {
         // Size of each packet.
 

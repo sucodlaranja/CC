@@ -17,14 +17,13 @@ import Logs.TransferLogs;
 
 public class ReceiverSNW {
 
-    /// Data will be sent from this socket to the address and port bellow.
-    private final DatagramSocket socket;
+    
+    private final DatagramSocket socket; ///< Data will be sent from this socket to the address and port bellow.
     private final InetAddress ADDRESS;
-    /// starts as listenerPort and then represents senders port.
-    private int PORT; 
+    private int PORT; ///< starts as listenerPort and then represents senders port.
 
-    /// Mode can be FILE, LOGS or GUIDE.
-    private final int MODE;
+    
+    private final int MODE; ///< Mode can be FILE, LOGS or GUIDE.
 
     /// Filename/path.
     private final String filepath;
