@@ -30,8 +30,8 @@ public class FTRapidPacket {
     public static final int DATA_CONTENT_SIZE = PACKET_SIZE - DATA_HEADER_SIZE;
     public static final int BUFFER_SIZE = 1024;
 
-    ///This is the sequence number used to aknowledge a control packet.
-    /// DATA packets are aknowledge with sequence numbers 0/1.
+    ///This is the sequence number used to acknowledge a control packet.
+    /// DATA packets are acknowledged with sequence numbers 0/1.
     public static final int CONTROL_SEQ_NUM = 2;
 
     public final static int ERROR = -1;

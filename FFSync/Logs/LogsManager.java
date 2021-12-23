@@ -6,21 +6,22 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
-
+///This class is will show all logs of a folder.
 /**
- * This class represents the logs of a given file,
- * and all the operations we can do to them
+ * This class represents the logs of a given folder. \n
+ * It will contain all the files of that folder.
  * */
 public class LogsManager {
 
-    private final String filepath; // Path where the files sits
-    private final Map<String, LogsRecord> logs; // Map with the files and timestamps
+    /// Filepath where the folder is.
+    private final String filepath;
+    /// Map with the files and Record.
+    private final Map<String, LogsRecord> logs;
 
-    // Basic Constructor
+    /// Basic Constructor.
     public LogsManager(String filepath) throws IOException {
         this.filepath = filepath;
         logs = new HashMap<>();
@@ -28,7 +29,7 @@ public class LogsManager {
         updateFileLogs();
     }
 
-    // Construct logs from bytes
+    /// Construct logs from bytes.
     public LogsManager(byte[] logBytes){
         filepath = "Non Defined";
         logs = new HashMap<>();
@@ -47,7 +48,7 @@ public class LogsManager {
         }
     }
 
-    // Serialize this class...
+    /// Serialize this class for bytes.
     public byte[] getBytes() {
         StringBuilder sb = new StringBuilder();
         sb.append(logs.size()).append("@");
@@ -57,16 +58,26 @@ public class LogsManager {
         return sb.toString().getBytes(StandardCharsets.UTF_8);
     }
 
-
-    // Basic getLogs method
+    // Basic getLogs method.
     public Map<String, LogsRecord> getLogs(){
         return new HashMap<>(logs);
     }
-    public Set<String> getFileNames() { return new HashSet<>(logs.keySet()); }
 
-    // Updates all logs
-    private boolean updateFileLogsAux(Path folder, String prePath) throws IOException {
-        boolean update = false; // Was there a cache on the logs
+    /// Simple version update. Uses \ref updateFileLogsAux
+    public void updateFileLogs() throws IOException {
+        this.updateFileLogsAux(Paths.get(filepath), "");
+    }
+
+    /**
+     * This is a private method.
+     * This method will update all the logs of a folder.
+     * Will run recursively for all the directories.
+     *
+     * @param folder The \b Path of the folder it needs to analyze.
+     * @param prePath An auxiliar to the recursive call.
+     * @throws IOException
+     */
+    private void updateFileLogsAux(Path folder, String prePath) throws IOException {
 
         for(Path file: Files.list(folder).toList()) {
 
@@ -82,23 +93,19 @@ public class LogsManager {
                 // If the there is no file such in the logs or if it is not up-to-date
                 if (!logs.containsKey(filename) || (logsRecord.compareTo(logs.get(filename)) != 0)) {
                     logs.put(filename, logsRecord);
-                    update = true;
                 }
             }
         }
-        return update;
     }
 
-    // Simple version update
-    public boolean updateFileLogs() throws IOException {
-        return this.updateFileLogsAux(Paths.get(filepath),"");
-    }
-
-    // Compare logs and generates the guide (queue) of transfers
-    public Guide compareLogs(Map<String, LogsRecord> otherLogs){
-        return new Guide(this.getLogs(), otherLogs);
-    }
-
+    /**
+     * This is a private auxiliar method.
+     * This method will create a long that is a checksum for a given file.
+     * Will read the file in blocks and will update the checksum.
+     *
+     * @param fileName Name of the file we want to use.
+     * @throws IOException
+     */
     private long getCRC32Checksum(String fileName) throws IOException {
         Checksum crc32 = new CRC32();
 
@@ -106,10 +113,8 @@ public class LogsManager {
         try{
             inputStream = new FileInputStream(fileName);
             byte[] bytes = new byte[1024];
-            int index;
-            while((index = inputStream.read(bytes)) != -1){
+            while( inputStream.read(bytes) != -1)
                 crc32.update(bytes, 0, bytes.length);
-            }
         }finally{
             if(inputStream != null){
                 inputStream.close();

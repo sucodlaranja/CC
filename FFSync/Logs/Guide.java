@@ -1,19 +1,27 @@
 package Logs;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.attribute.FileTime;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 
+/// This class represents a guide of transfers.
+
+/**
+ * This class represents a guide of transfers. \n
+ * It will contain a queue that is to be followed by the \ref TransferHandler.
+ */
 public class Guide {
 
+    /// Queue of transfers to be followed.
     private final Queue<TransferLogs> guide;
 
+    /// This constructor will compare 2 \ref LogsManager and will generate the guide
     public Guide(Map<String, LogsRecord> alfa, Map<String, LogsRecord> beta) {
         this.guide = compareLogs(alfa, beta);
     }
 
+    /// Construct guide from bytes.
     public Guide(byte[] guideBytes){
         this.guide = new LinkedList<>();
 
@@ -31,7 +39,7 @@ public class Guide {
         }
     }
 
-    // Serialize this class.
+    /// Serialize this class.
     public byte[] getBytes(){
         StringBuilder sb = new StringBuilder();
         sb.append(this.guide.size()).append("@");
@@ -44,7 +52,19 @@ public class Guide {
         return sb.toString().getBytes(StandardCharsets.UTF_8);
     }
 
-    // Compare two LogsManager and generate guide.
+
+    /**
+     * Compare two LogsManager and generate guide. \n
+     * It will add all the possibilities of a transfer. \n
+     * 1- alpha needs to actualize the file in beta \n
+     * 2- beta needs to actualize the file in alpha \n
+     * 3- alpha needs a new file in beta. \n
+     * 4- beta needs a new file in alpha.
+     *
+     * @param alfa logs to compare.
+     * @param beta others logs to compare.
+     * @return The queue that it generates
+     */
     private Queue<TransferLogs> compareLogs(Map<String, LogsRecord> alfa, Map<String, LogsRecord> beta) {
         // Create guide
         Queue<TransferLogs> listOfTransfers = new LinkedList<>();
@@ -70,7 +90,7 @@ public class Guide {
 
     }
 
-    // Get guide.
+    /// Basic get.
     public Queue<TransferLogs> getGuide() {
         return guide;
     }
