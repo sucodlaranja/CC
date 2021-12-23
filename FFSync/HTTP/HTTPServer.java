@@ -59,8 +59,8 @@ public class HTTPServer implements Runnable {
     }
 
     /**
-     * this method contains of a loop that receives HTTP requests, \n
-     * accepts a connection with the client, reads all content in client \b InputStream. \n
+     * This method contains a loop that receives HTTP requests, \n
+     * accepts a connection with the client, reads all content in connection \b InputStream. \n
      * Isolates the get request, splits the argument and redirects to \ref getHandler method.\n
      * That is responsable for creating the html code that will be sent by \b outputstream.
      * Maintains in the loop until the program shuts down and the \ref closeServer is called.
@@ -120,10 +120,10 @@ public class HTTPServer implements Runnable {
     /// Handles all get requests from the user.
     /**
      * Receives the get request argument, verifies if the arguments is simply "/",
-     * if so, calls \ref mainMenu that creates the mainmenu.\n
-     * If the arguments has more than "/", it fabricates and insert html code for
-     * the given argument, it starts for creating the title for the page,\n
-     * creates a \b back "button", that traces back to \bmainMenu, and displays all
+     * if so, calls \ref mainMenu that creates the Main menu.\n
+     * If the arguments has more than "/", it fabricates and inserts html code for
+     * the given argument, starts by creating the title for the page,\n
+     * creates a \b back "button", that traces back to \b Main Menu, and displays all
      * info about the given arguments with the help of \ref getSync method.
      * 
      * @param argument argument for the get request.
@@ -144,11 +144,11 @@ public class HTTPServer implements Runnable {
     }
 
     /**
-     * Auxiliar method to use in \ref mainMenu method so it can fabricate the html
+     * Auxiliar method to use in \ref mainMenu so it can fabricate the html
      * code for the http main menu.
      * 
      * @return returns a set with all folder's names inside the \ref HTTP_FILEPATH
-     *         parameter
+     *         
      * @throws IOException
      *  Happens when an error occurs while reading files inside \ref HTTP_FILEPATH 
      */
@@ -164,12 +164,12 @@ public class HTTPServer implements Runnable {
 
     /**
      * Method that receives a \b filename, this \b filename represents the folder in
-     * sync that the user wants to visualizem, \n
+     * sync that the user wants to visualize, \n
      * the return string will have all files syncing inside that directory, it will
      * have information about the \n date of last tranfer, \n
-     * time and bits per second the last tranfer took.
+     * time and Kbps per second the last tranfer took.
      * 
-     * @return returns a string with all html code to display
+     * @return returns a string with all html code to display.
      */
     public String getSync(String filename) {
         try {
