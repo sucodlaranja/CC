@@ -65,7 +65,7 @@ public class Guide {
      * @param beta others logs to compare.
      * @return The queue that it generates
      */
-    private Queue<TransferLogs> compareLogs(Map<String, LogsRecord> alfa, Map<String, LogsRecord> beta) {
+    public Queue<TransferLogs> compareLogs(Map<String, LogsRecord> alfa, Map<String, LogsRecord> beta) {
         // Create guide
         Queue<TransferLogs> listOfTransfers = new LinkedList<>();
 

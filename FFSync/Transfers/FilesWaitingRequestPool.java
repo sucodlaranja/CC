@@ -8,7 +8,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /// This class contains the request we expect in the \ref TransferHandler.
 /**
  * This class serves has the shared instances between the class \ref TransferHandler and \ref TransferHandler.Listener.\n
- * This class will be used by various threads, so it needs locks and condition.
+ * This class will be used by various threads, so it needs locks and condition. \n
  * The condition will make threads sleep when there is no need to be working.
  * */
 public class FilesWaitingRequestPool{
@@ -69,7 +69,7 @@ public class FilesWaitingRequestPool{
         }
     }
 
-    // Adds filename to set and wakes up the listener if it is sleeping.
+    /// Adds filename to set and wakes up the listener if it is sleeping.
     public void addUpcomingFiles(String fileName){
         lock.lock();
         try {
