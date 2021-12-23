@@ -133,6 +133,9 @@ public class SyncHandler implements Runnable{
             logsBytes = (byte[]) list.get(0);
 
         // Create LogsManager instance.
+        if(logsBytes == null)
+            return null;
+
         LogsManager beta = new LogsManager(logsBytes);
 
         // Update logs (and save them).
